@@ -1,0 +1,12 @@
+[package]
+name = "anim3d"
+version = "0.1.0"
+authors = ["Joseph C. Osborn <joseph.osborn@pomona.edu>"]
+edition = "2018"
+
+[dependencies]
+engine3d = {path = "../engine3d/"}
+env_logger = "0.7"
+rand = "0.8.3"
+winit = "0.24.0"
+cgmath = "0.18"
