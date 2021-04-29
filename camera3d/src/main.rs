@@ -2,7 +2,7 @@ use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, Engin
 use rand;
 use winit;
 
-const NUM_MARBLES: usize = 10;
+const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
 
 #[derive(Clone, Debug)]
@@ -20,10 +20,7 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: (Mat4::from_translation(self.body.c.to_vec() - Vec3::new(0.0, 0.2, 0.0))
-                    * Mat4::from_scale(self.body.r)
-                    * Mat4::from(self.rot))
-                .into(),
+                model: (Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)).into(),
             },
         );
     }
@@ -208,8 +205,45 @@ impl Wall {
     }
 }
 
+struct Cube {
+    pub body: Box,
+}
+
+impl Cube {
+    fn render(&self, rules: &GameData, igs: &mut InstanceGroups) {
+        igs.render_batch(
+            rules.box_model,
+            engine3d::render::InstanceRaw {
+                model: (Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)).into(),
+            }
+        );,
+    }
+}
+
+// *** from Collision3D
+// #[derive(Clone, Copy, PartialEq, Debug)]
+// pub struct Cube {
+//     pub body: Box,
+//     pub velocity: Vec3,
+//     pub momentum: Vec3,
+// }
+
+// impl Cube {
+//     fn to_raw(&self) -> InstanceRaw {
+//         InstanceRaw {
+//             model: (Mat4::from_translation(self.body.pos.to_vec()) * Mat4::from_scale(self.body.dims.x)).into(),
+//         }
+//     }
+//     fn update(&mut self, g: f32) {
+//     }
+//     pub fn apply_impulse(&mut self, f: Vec3) {
+//     }
+// }
+
+
 struct Game<Cam: Camera> {
     marbles: Marbles,
+    boxes: Vec<Box>,
     wall: Wall,
     player: Player,
     camera: Cam,
@@ -220,6 +254,7 @@ struct Game<Cam: Camera> {
 }
 struct GameData {
     marble_model: engine3d::assets::ModelRef,
+    box_model: engine3d::assets::ModelRef,
     wall_model: engine3d::assets::ModelRef,
     player_model: engine3d::assets::ModelRef,
 }
@@ -262,14 +297,21 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 .collect::<Vec<_>>(),
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
+        let boxes = vec![Box {
+            c: Pos3::new(0.5, 0.5, 0.5),
+            axes: Mat3::new(200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0),
+            half_sizes: Vec3::new(1.0, 1.0, 1.0),
+        }];
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
-        let player_model = engine.load_model("capsule.obj");
+        let player_model = engine.load_model("sphere.obj");
+        let box_model = engine.load_model("box.obj");
         (
             Self {
                 // camera_controller,
                 marbles,
                 wall,
+                boxes,
                 player,
                 camera,
                 // TODO nice this up somehow
@@ -281,6 +323,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
             GameData {
                 wall_model,
                 marble_model,
+                box_model,
                 player_model,
             },
         )
@@ -289,6 +332,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
         self.wall.render(rules, igs);
         self.marbles.render(rules, igs);
         self.player.render(rules, igs);
+        self.boxes.iter().map(|box| box.render(rules, igs));
         // self.camera.render(rules, igs);
     }
     fn update(&mut self, _rules: &Self::StaticData, engine: &mut Engine) {
@@ -394,5 +438,5 @@ fn main() {
     env_logger::init();
     let title = env!("CARGO_PKG_NAME");
     let window = winit::window::WindowBuilder::new().with_title(title);
-    run::<GameData, Game<FPCamera>>(window, std::path::Path::new("content"));
+    run::<GameData, Game<OrbitCamera>>(window, std::path::Path::new("content"));
 }
