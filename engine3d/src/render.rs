@@ -143,10 +143,7 @@ impl Render {
             label: Some("uniform_bind_group"),
         });
         use crate::geom::*;
-        let lights = vec![crate::lights::Light::point(
-            Pos3::new(0.0, 10.0, 0.0),
-            Vec3::new(1.0, 1.0, 1.0),
-        )];
+        let lights = vec![crate::lights::Light::point(Pos3::new(0.0,0.0,0.0), Vec3::zero());LIGHT_MAX];
         let light_uniform_size =
             (LIGHT_MAX * std::mem::size_of::<crate::lights::Light>()) as wgpu::BufferAddress;
         let light_buffer = device.create_buffer(&wgpu::BufferDescriptor {
