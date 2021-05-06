@@ -9,17 +9,30 @@ pub const PI: f32 = std::f32::consts::PI;
 
 pub trait Shape {
     fn translate(&mut self, v: Vec3);
+    fn apply_impulse(&mut self, v: Vec3);
 }
+
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Sphere {
     pub c: Pos3,
     pub r: f32,
+    pub momentum: Vec3,
 }
 
 impl Shape for Sphere {
     fn translate(&mut self, v: Vec3) {
         self.c += v;
+    }
+    fn apply_impulse(&mut self, disp: Vec3) {
+
+        let bounce = 0.9;
+
+        let n = disp / disp.magnitude();
+        let d = self.momentum.dot(n);
+        let j = (-(1.0 + bounce) * d).max(0.0);
+
+        self.momentum += j * n;
     }
 }
 
@@ -31,6 +44,9 @@ pub struct Plane {
 
 impl Shape for Plane {
     fn translate(&mut self, _v: Vec3) {
+        panic!();
+    }
+    fn apply_impulse(&mut self, _v: Vec3) {
         panic!();
     }
 }
@@ -46,6 +62,9 @@ impl Shape for Box {
     fn translate(&mut self, v: Vec3) {
         self.c += v;
     }
+    fn apply_impulse(&mut self, _v: Vec3) {
+        panic!();
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -58,6 +77,9 @@ impl Shape for AABB {
     fn translate(&mut self, v: Vec3) {
         self.c += v;
     }
+    fn apply_impulse(&mut self, _v: Vec3) {
+        panic!();
+    }
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -69,6 +91,9 @@ pub struct Ray {
 impl Shape for Ray {
     fn translate(&mut self, v: Vec3) {
         self.p += v;
+    }
+    fn apply_impulse(&mut self, _v: Vec3) {
+        panic!();
     }
 }
 

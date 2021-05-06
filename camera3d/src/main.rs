@@ -25,12 +25,19 @@ impl Player {
         );
     }
     fn integrate(&mut self) {
+        self.velocity = self.body.momentum;
         self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
         }
         self.body.c += self.velocity * DT;
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
+        self.body.momentum = self.velocity;
+    }
+
+    fn apply_impulse(&mut self, m: Vec3) {
+        self.body.momentum += m;
+        self.velocity = self.body.momentum;
     }
 }
 
@@ -211,12 +218,15 @@ struct Cube {
 
 impl Cube {
     fn render(&self, rules: &GameData, igs: &mut InstanceGroups) {
-        igs.render_batch(
+        let scale = self.body.half_sizes * 2.0;
+        igs.render(
             rules.box_model,
             engine3d::render::InstanceRaw {
-                model: (Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)).into(),
+                model: (Mat4::from_translation(self.body.c.to_vec())
+                    * Mat4::from_nonuniform_scale(scale.x, scale.y, scale.y))
+                .into(),
             }
-        );,
+        );
     }
 }
 
@@ -243,7 +253,7 @@ impl Cube {
 
 struct Game<Cam: Camera> {
     marbles: Marbles,
-    boxes: Vec<Box>,
+    cubes: Vec<Cube>,
     wall: Wall,
     player: Player,
     camera: Cam,
@@ -274,6 +284,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
             body: Sphere {
                 c: Pos3::new(0.0, 3.0, 0.0),
                 r: 0.3,
+                momentum: Vec3::new(0.0, 0.0, 0.0)
             },
             velocity: Vec3::zero(),
             acc: Vec3::zero(),
@@ -292,16 +303,24 @@ impl<C: Camera> engine3d::Game for Game<C> {
                     Sphere {
                         c: Pos3::new(x, y, z),
                         r,
+                        momentum: Vec3::new(0.0, 0.0, 0.0)
                     }
                 })
                 .collect::<Vec<_>>(),
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
-        let boxes = vec![Box {
-            c: Pos3::new(0.5, 0.5, 0.5),
-            axes: Mat3::new(200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0, 200.0),
+
+        let b = Box {
+            c: Pos3::new(1.0, 1.0, 1.0),
+            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
-        }];
+        };
+                
+        // let cubes = vec![Cube{
+        //     body: b
+        // }];
+        let cubes = vec![];
+    
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
         let player_model = engine.load_model("sphere.obj");
@@ -311,7 +330,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 // camera_controller,
                 marbles,
                 wall,
-                boxes,
+                cubes,
                 player,
                 camera,
                 // TODO nice this up somehow
@@ -332,7 +351,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
         self.wall.render(rules, igs);
         self.marbles.render(rules, igs);
         self.player.render(rules, igs);
-        self.boxes.iter().map(|box| box.render(rules, igs));
+        self.cubes.iter().for_each(|c| c.render(rules, igs));
         // self.camera.render(rules, igs);
     }
     fn update(&mut self, _rules: &Self::StaticData, engine: &mut Engine) {
