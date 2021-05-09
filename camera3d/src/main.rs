@@ -1,6 +1,10 @@
-use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, Engine, DT};
+use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, Engine, DT, sound};
 use rand;
 use winit;
+use std::io::BufReader;
+use std::thread;
+use std::time::Duration;
+use rodio::{SpatialSink, source::SineWave, source::Source};
 
 const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
@@ -230,27 +234,6 @@ impl Cube {
     }
 }
 
-// *** from Collision3D
-// #[derive(Clone, Copy, PartialEq, Debug)]
-// pub struct Cube {
-//     pub body: Box,
-//     pub velocity: Vec3,
-//     pub momentum: Vec3,
-// }
-
-// impl Cube {
-//     fn to_raw(&self) -> InstanceRaw {
-//         InstanceRaw {
-//             model: (Mat4::from_translation(self.body.pos.to_vec()) * Mat4::from_scale(self.body.dims.x)).into(),
-//         }
-//     }
-//     fn update(&mut self, g: f32) {
-//     }
-//     pub fn apply_impulse(&mut self, f: Vec3) {
-//     }
-// }
-
-
 struct Game<Cam: Camera> {
     marbles: Marbles,
     cubes: Vec<Cube>,
@@ -261,12 +244,14 @@ struct Game<Cam: Camera> {
     pw: Vec<collision::Contact<usize>>,
     mm: Vec<collision::Contact<usize>>,
     mw: Vec<collision::Contact<usize>>,
+    // sound: sound::Sound,
 }
 struct GameData {
     marble_model: engine3d::assets::ModelRef,
     box_model: engine3d::assets::ModelRef,
     wall_model: engine3d::assets::ModelRef,
     player_model: engine3d::assets::ModelRef,
+    // sound: sound::Sound,
 }
 
 impl<C: Camera> engine3d::Game for Game<C> {
@@ -354,7 +339,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
         self.cubes.iter().for_each(|c| c.render(rules, igs));
         // self.camera.render(rules, igs);
     }
-    fn update(&mut self, _rules: &Self::StaticData, engine: &mut Engine) {
+    fn update(&mut self, _rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound) {
         // dbg!(self.player.body);
         // TODO update player acc with controls
         // TODO update camera with controls/player movement
@@ -385,6 +370,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
             self.player.omega = Vec3::zero();
         }
 
+        sound.play_left();
         // orbit camera
         self.camera.update(&engine.events, &self.player);
 

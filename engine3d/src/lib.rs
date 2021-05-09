@@ -17,13 +17,14 @@ use render::{InstanceGroups, Render};
 pub mod assets;
 use assets::Assets;
 pub mod lights;
+pub mod sound;
 
 pub const DT: f32 = 1.0 / 60.0;
 
 pub trait Game: Sized {
     type StaticData;
     fn start(engine: &mut Engine) -> (Self, Self::StaticData);
-    fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine);
+    fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound);
     fn render(&mut self, rules: &Self::StaticData, assets:&Assets, igs: &mut InstanceGroups);
 }
 
@@ -90,6 +91,17 @@ pub fn run<R, G: Game<StaticData = R>>(
     // How many unsimulated frames have we saved up?
     let mut available_time: f32 = 0.0;
     let mut since = Instant::now();
+    // sound stuff
+    let (_stream, handle) = rodio::OutputStream::try_default().unwrap();
+        let sink = rodio::SpatialSink::try_new(
+            &handle,
+            [-10.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [-1.0, 0.0, 0.0],
+        )
+        .unwrap();
+    let sound = sound::Sound{sink};
+    sound.add_sound("content/music.ogg");
 
     event_loop.run_return(move |event, _, control_flow| {
         *control_flow = ControlFlow::Poll;
@@ -123,6 +135,7 @@ pub fn run<R, G: Game<StaticData = R>>(
                 }
             }
             Event::RedrawRequested(_) => {
+                // println!("fds"); more sound
                 match engine.render.render(&mut game, &rules, &mut engine.assets) {
                     Ok(_) => {}
                     // Recreate the swap_chain if lost
@@ -135,6 +148,7 @@ pub fn run<R, G: Game<StaticData = R>>(
                 // The renderer "produces" time...
                 available_time += since.elapsed().as_secs_f32();
                 since = Instant::now();
+                
             }
             _ => {}
         }
@@ -143,7 +157,7 @@ pub fn run<R, G: Game<StaticData = R>>(
             // Eat up one frame worth of time
             available_time -= DT;
 
-            game.update(&rules, &mut engine);
+            game.update(&rules, &mut engine, &sound);
 
             engine.events.next_frame();
             engine.frame += 1;

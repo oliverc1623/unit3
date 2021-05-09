@@ -1,4 +1,4 @@
-use engine3d::{events::*, geom::*, render::InstanceGroups, run, Engine, DT, anim::Bone};
+use engine3d::{events::*, geom::*, render::InstanceGroups, run, Engine, DT, anim::Bone, sound};
 use winit;
 
 #[derive(Clone, Debug)]
@@ -124,7 +124,7 @@ impl engine3d::Game for Game {
     fn render(&mut self, rules: &Self::StaticData, assets:&engine3d::assets::Assets, igs: &mut InstanceGroups) {
         self.player.render(rules, assets, igs);
     }
-    fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine) {
+    fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound) {
         self.player.integrate(rules);
         self.camera.update(&engine.events, &self.player);
         self.camera.update_camera(engine.camera_mut());
