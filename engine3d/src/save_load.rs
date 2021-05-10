@@ -20,15 +20,21 @@ pub struct Location {
 
 pub fn parse_save(string_path: String) -> Result<SaveFile> {
     let mut save_string = String::new();
-    let file = File::open(string_path);
 
-    if let mut buffer = file.unwrap(){
+    let b = std::path::Path::new(&string_path).exists();
+    let mut file:File;
+    if !b {
+            file = File::create(string_path).unwrap();
+        }
+        else{
+            file = File::open(string_path).unwrap();
+        }
         
-    buffer.read_to_string(&mut save_string);
-    }
+        file.read_to_string(&mut save_string);
+        let save: SaveFile = serde_json::from_str(save_string.as_mut_str())?;
+        return Ok(save);
     
-    let save: SaveFile = serde_json::from_str(save_string.as_mut_str())?;
-    Ok(save)
+    
 }
 
 pub fn new_save(position: Pos3, string_path: String) -> Result<()>{
