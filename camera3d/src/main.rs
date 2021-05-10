@@ -121,11 +121,11 @@ impl Camera for OrbitCamera {
     }
     fn update(&mut self, events: &engine3d::events::Events, player: &Player) {
         let (dx, dy) = events.mouse_delta();
-        self.pitch += dy / 100.0;
-        self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
+        //self.pitch += dy / 100.0;
+        //self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
 
         self.yaw += dx / 100.0;
-        self.yaw = self.yaw.clamp(-PI / 4.0, PI / 4.0);
+        self.yaw = self.yaw.clamp(-PI, PI);
         if events.key_pressed(KeyCode::Up) {
             self.distance -= 0.5;
         }
@@ -141,14 +141,14 @@ impl Camera for OrbitCamera {
         c.target = self.player_pos;
         // And rotated around the player's position and offset backwards
 
-        // let camera_rot = self.player_rot
-        //     * Quat::from(cgmath::Euler::new(
-        //         cgmath::Rad(self.pitch),
-        //         cgmath::Rad(self.yaw),
-        //         cgmath::Rad(0.0),
-        //     ));
-        // let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
-        // c.eye = self.player_pos + offset;
+        let camera_rot = 
+              Quat::from(cgmath::Euler::new(
+                 cgmath::Rad(self.pitch),
+                 cgmath::Rad(self.yaw),
+                 cgmath::Rad(0.0),
+             ));
+        let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
+        c.eye = self.player_pos + offset;
 
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
     }
