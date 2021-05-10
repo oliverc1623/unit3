@@ -118,11 +118,11 @@ impl Camera for OrbitCamera {
     }
     fn update(&mut self, events: &engine3d::events::Events, player: &Player) {
         let (dx, dy) = events.mouse_delta();
-        //self.pitch += dy / 100.0;
-        //self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
+        self.pitch += dy / 100.0;
+        self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
 
         self.yaw += dx / 100.0;
-        self.yaw = self.yaw.clamp(-PI, PI);
+        self.yaw = self.yaw.clamp(-PI / 4.0, PI / 4.0);
         if events.key_pressed(KeyCode::Up) {
             self.distance -= 0.5;
         }
@@ -138,14 +138,14 @@ impl Camera for OrbitCamera {
         c.target = self.player_pos;
         // And rotated around the player's position and offset backwards
 
-        let camera_rot = 
-              Quat::from(cgmath::Euler::new(
-                 cgmath::Rad(self.pitch),
-                 cgmath::Rad(self.yaw),
-                 cgmath::Rad(0.0),
-             ));
-        let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
-        c.eye = self.player_pos + offset;
+        // let camera_rot = self.player_rot
+        //     * Quat::from(cgmath::Euler::new(
+        //         cgmath::Rad(self.pitch),
+        //         cgmath::Rad(self.yaw),
+        //         cgmath::Rad(0.0),
+        //     ));
+        // let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
+        // c.eye = self.player_pos + offset;
 
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
     }
@@ -258,8 +258,8 @@ impl Wall {
 }
 
 struct Cube {
-    pub body: Box,
-    pub velocity: f32,
+    pub body: AABB,
+    pub velocity: Vec3,
 }
 
 impl Cube {
@@ -273,6 +273,10 @@ impl Cube {
                 .into(),
             },
         );
+    }
+
+    fn integrate(&mut self) {
+        self.body.c += self.velocity * DT;
     }
 }
 
@@ -346,19 +350,19 @@ impl engine3d::Game for Game {
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
 
-        let b = Box {
+        let b = AABB {
             c: Pos3::new(1.0, 1.0, 1.0),
-            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
-        let b2 = Box {
+        let b2 = AABB {
             c: Pos3::new(18.0, 1.0, 22.0),
-            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
-        let cubes = vec![Cube { body: b }, Cube { body: b2 }];
+        let cubes = vec![Cube { body: b, velocity:Vec3::zero() }, Cube { body: b2, velocity: Vec3::zero() }];
         // let cubes = vec![];
 
         let wall_model = engine.load_model("floor.obj");
@@ -468,6 +472,7 @@ impl engine3d::Game for Game {
         self.wall.integrate();
         self.player.integrate();
         self.marbles.integrate();
+        self.cubes.iter_mut().for_each(|b| b.integrate());
         if self.use_alt_cam {
             self.alt_camera.integrate();
         } else {
@@ -496,6 +501,7 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
+        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pw);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -538,7 +544,7 @@ impl engine3d::Game for Game {
         }
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
-            let cube_pos = self.cubes[0].body.c;
+            let cube_pos = self.cubes[1].body.c;
             println!("cubex pos: {}", cube_pos[0]);
             println!("cube z pos: {}", cube_pos[2]);
             println!("my x pos: {}", self.player.body.c[0]);
@@ -549,36 +555,36 @@ impl engine3d::Game for Game {
             // top right
             if x_diff > 0.0 && z_diff < 0.0 {
                 // we are to right of cube
-                println!("top right: {}", x_diff);
+                println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_left_to_right(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_bottom_to_top(z_diff);
             }
             // bottom left
-            if x_diff < 0.0 && z_diff > 0.0  {
+            if x_diff > 0.0 && z_diff > 0.0 {
                 // we are to right of cube
-                println!("bottom left: {}", x_diff);
+                println!("xdip: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_left_to_right(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_top_to_bottom(z_diff);
+            }
+            // top right
+            if x_diff < 0.0 && z_diff > 0.0 {
+                // we are to right of cube
+                println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_right_to_left(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }
-            // top left
+            // bottom right
             if x_diff < 0.0 && z_diff < 0.0 {
                 // we are to right of cube
-                println!("top left: {}", x_diff);
+                println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_right_to_left(x_diff);
-                sound.add_sound("content/beep3.ogg");
-                sound.play_bottom_to_top(z_diff);
-            }
-            // bottom right
-            if x_diff > 0.0 && z_diff > 0.0 {
-                // we are to right of cube
-                println!("bottom right: {}", x_diff);
-                sound.add_sound("content/beep3.ogg");
-                sound.play_left_to_right(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }
