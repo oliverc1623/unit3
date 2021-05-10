@@ -19,32 +19,28 @@ impl Sound {
     }
     pub fn play_left_to_right(&self, xdisp: f32) {
         for i in 1..(xdisp as i32 * 25) {
-            thread::sleep(Duration::from_millis(2));
-            println!("{}", (i - 500) as f32 / 50.0);
+            thread::sleep(Duration::from_millis(5));
             self.sink
                 .set_emitter_position([(i - 500) as f32 / 50.0, 0.0, 0.0]);
         }
     }
     pub fn play_bottom_to_top(&self, zdisp: f32) {
         for i in 1..-(zdisp as i32 * 25) {
-            thread::sleep(Duration::from_millis(2));
-            println!("{}", (i - 500) as f32 / 50.0);
+            thread::sleep(Duration::from_millis(5));
             self.sink
                 .set_emitter_position([0.0, 0.0, (i - 500) as f32 / 50.0]);
         }
     }
     pub fn play_top_to_bottom(&self, zdisp: f32) {
         for i in 1..(zdisp as i32 * 20) {
-            thread::sleep(Duration::from_millis(2));
-            println!("{}", -(i - 500) as f32 / 50.0);
+            thread::sleep(Duration::from_millis(5));
             self.sink
                 .set_emitter_position([0.0, 0.0, -(i - 500) as f32 / 50.0]);
         }
     }
     pub fn play_right_to_left(&self, xdisp: f32) {
         for i in 1..-(xdisp as i32 * 25) {
-            thread::sleep(Duration::from_millis(2));
-            println!("{}", -(i - 500) as f32 / 50.0);
+            thread::sleep(Duration::from_millis(5));
             self.sink
                 .set_emitter_position([-(i - 500) as f32 / 50.0, 0.0, 0.0]);
         }
