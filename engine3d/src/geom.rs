@@ -44,10 +44,10 @@ impl Shape for Sphere {
         let r = contact_point - self.c.to_vec();
         let i = Mat3::new(mr, 0.0, 0.0, 0.0, mr, 0.0, 0.0, 0.0, mr);
 
-        println!("DISP: {}, {}, {}", disp.x, disp.y, disp.z);
+        // println!("DISP: {}, {}, {}", disp.x, disp.y, disp.z);
 
         let u = 0.5;
-        let t = -v;
+        let t = v;
 
 
 
@@ -59,8 +59,10 @@ impl Shape for Sphere {
         let j_new = num / den;
 
         self.lin_mom += j_new * n; // Update linear momentum
+        // self.lin_mom *= 0.85;
         self.ang_mom += r.cross(j_new * n); // Update angular momentum
-        // println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
+        // self.ang_mom *= 0.85;
+        println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
     }
 }
 
@@ -219,7 +221,7 @@ impl Collide<AABB> for Sphere {
             disp.z = self.r - disp.z;
         }
 
-        disp = disp / 2.0;
+        disp = disp / 10.0;
         
         if distance < self.r {
             println!("collide! {}, {}", distance, self.r);
