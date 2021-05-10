@@ -16,7 +16,9 @@ pub trait Shape {
 pub struct Sphere {
     pub c: Pos3,
     pub r: f32,
-    pub momentum: Vec3,
+    pub lin_mom: Vec3,
+    pub ang_mom: Vec3,
+    pub mass: f32,
 }
 
 impl Shape for Sphere {
@@ -24,13 +26,35 @@ impl Shape for Sphere {
         self.c += v;
     }
     fn apply_impulse(&mut self, disp: Vec3) {
-        let bounce = 0.9;
 
+        // This is calculating and applying the impulse, the assumption is that it is only stationaty contacts
+        // let bounce = 0.9;
+        // let d = self.lin_mom.dot(n);
+        // let j = (-(1.0 + bounce) * d).max(0.0);
+
+        let mr = (2.0/5.0) * self.mass * self.r * self.r;
+        let contact_point = self.c.to_vec() + Vec3::new(0.0, 1.0, 0.0) * self.r; // The point of contact
+
+
+        let m = self.mass;
+        let e = 0.9;
         let n = disp / disp.magnitude();
-        let d = self.momentum.dot(n);
-        let j = (-(1.0 + bounce) * d).max(0.0);
+        let v = self.lin_mom + self.ang_mom.cross(contact_point - self.c.to_vec());
+        let r = contact_point - self.c.to_vec();
+        let i = Mat3::new(mr, 0.0, 0.0, 0.0, mr, 0.0, 0.0, 0.0, mr);
+        let u = 0.5;
+        let t = -v;
 
-        self.momentum += j * n;
+        let num = -(1.0 + e) * v.dot(n);
+        let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
+        // let num = (-v).dot(t) * u;
+        // let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(t)).cross(r)).dot(t);
+
+        let j_new = num / den;
+
+        self.lin_mom += j_new * n; // Update linear momentum
+        self.ang_mom += r.cross(j_new * n); // Update angular momentum
+        println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
     }
 }
 
@@ -234,3 +258,26 @@ impl Cast<AABB> for Ray {
         Some((self.p + self.dir * tmin, tmin))
     }
 }
+
+struct Bivector3 {
+    xy: f32,
+    xz: f32,
+    yz: f32
+}
+
+impl Bivector3 {
+
+    fn new(xy: f32, xz: f32, yz: f32) -> Self {
+        Bivector3 {
+            xy,
+            xz,
+            yz
+        }
+    }
+
+}
+
+
+// struct Rotor {
+
+// }
