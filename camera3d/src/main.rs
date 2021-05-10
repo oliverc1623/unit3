@@ -301,10 +301,10 @@ impl<C: Camera> engine3d::Game for Game<C> {
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
                 
-        // let cubes = vec![Cube{
-        //     body: b
-        // }];
-        let cubes = vec![];
+        let cubes = vec![Cube{
+            body: b
+        }];
+        // let cubes = vec![];
     
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
@@ -348,15 +348,15 @@ impl<C: Camera> engine3d::Game for Game<C> {
 
         self.player.acc = Vec3::zero();
         if engine.events.key_held(KeyCode::W) {
-            self.player.acc.z = 1.0;
+            self.player.acc.z = 5.0;
         } else if engine.events.key_held(KeyCode::S) {
-            self.player.acc.z = -1.0;
+            self.player.acc.z = -5.0;
         }
 
         if engine.events.key_held(KeyCode::A) {
-            self.player.acc.x = 1.0;
+            self.player.acc.x = 5.0;
         } else if engine.events.key_held(KeyCode::D) {
-            self.player.acc.x = -1.0;
+            self.player.acc.x = -5.0;
         }
         if self.player.acc.magnitude2() > 1.0 {
             self.player.acc = self.player.acc.normalize();
@@ -370,7 +370,6 @@ impl<C: Camera> engine3d::Game for Game<C> {
             self.player.omega = Vec3::zero();
         }
 
-        sound.play_left();
         // orbit camera
         self.camera.update(&engine.events, &self.player);
 
@@ -436,6 +435,53 @@ impl<C: Camera> engine3d::Game for Game<C> {
         }
 
         self.camera.update_camera(engine.camera_mut());
+        // play sound        
+        if engine.events.key_pressed(KeyCode::H) {
+            let cube_pos = self.cubes[0].body.c;
+            println!("cubex pos: {}", cube_pos[0]);
+            println!("cube z pos: {}", cube_pos[2]);
+            println!("my x pos: {}", self.player.body.c[0]);
+            println!("my z pos: {}", self.player.body.c[2]);
+
+            let x_diff = cube_pos[0] - self.player.body.c[0];
+            let z_diff = cube_pos[2] - self.player.body.c[2];
+            // top right
+            if  x_diff > 0.0 && z_diff < 0.0 {
+                // we are to right of cube
+                println!("xdip: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_left_to_right(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_bottom_to_top(z_diff);
+            }
+            // bottom left
+            if  x_diff > 0.0 && z_diff > 0.0 {
+                // we are to right of cube
+                println!("xdip: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_left_to_right(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_top_to_bottom(z_diff);
+            }
+            // top left
+            if  x_diff < 0.0 && z_diff > 0.0 {
+                // we are to right of cube
+                println!("xdip: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_right_to_left(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_top_to_bottom(z_diff);
+            }
+            // bottom right
+            if  x_diff < 0.0 && z_diff > 0.0 {
+                // we are to right of cube
+                println!("xdip: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_right_to_left(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_top_to_bottom(z_diff);
+            }
+        } 
     }
 }
 
