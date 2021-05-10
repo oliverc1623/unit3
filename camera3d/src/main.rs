@@ -314,7 +314,7 @@ impl engine3d::Game for Game {
         };
         let player = Player {
             body: Sphere {
-                c: Pos3::new(0.0, 3.0, 0.0),
+                c: Pos3::new(10.0, 3.0, 10.0),
                 r: 0.3,
                 lin_mom: Vec3::new(0.0, 0.0, 0.0),
                 ang_mom: Vec3::new(0.0, 0.0, 0.0),
@@ -355,14 +355,13 @@ impl engine3d::Game for Game {
         };
 
         let b2 = Box {
-            c: Pos3::new(18.0, 1.0, 22.0),
+            c: Pos3::new(25.0, 1.0, 25.0),
             axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
         let cubes = vec![Cube { body: b }, Cube { body: b2 }];
         // let cubes = vec![];
-
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
         let player_model = engine.load_model("sphere.obj");
@@ -467,7 +466,7 @@ impl engine3d::Game for Game {
             self.player.integrate();
         }
 
-        self.wall.integrate();
+        // self.walls.integrate();
         self.player.integrate();
         self.marbles.integrate();
         if self.use_alt_cam {
@@ -498,20 +497,9 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
-        collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
+
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
-        collision::restitute_dyn_stat(
-            &mut self.marbles.body,
-            &mut self.marbles.velocity,
-            &[self.wall.body],
-            &mut self.mw,
-        );
-        collision::restitute_dyns(
-            &mut self.marbles.body,
-            &mut self.marbles.velocity,
-            &mut self.mm,
-        );
+
         collision::restitute_dyn_dyn(
             &mut pb,
             &mut pv,

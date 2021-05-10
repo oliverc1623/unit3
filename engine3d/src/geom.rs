@@ -33,7 +33,7 @@ impl Shape for Sphere {
         // let j = (-(1.0 + bounce) * d).max(0.0);
 
         let mr = (2.0/5.0) * self.mass * self.r * self.r;
-        let contact_point = self.c.to_vec() + Vec3::new(0.0, 1.0, 0.0) * self.r; // The point of contact
+        let contact_point = self.c.to_vec() + disp.normalize() * self.r; // The point of contact
 
 
         let m = self.mass;
@@ -49,7 +49,7 @@ impl Shape for Sphere {
         let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
         // let num = (-v).dot(t) * u;
         // let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(t)).cross(r)).dot(t);
-
+        println!("den: {} ", den);
         let j_new = num / den;
 
         self.lin_mom += j_new * n; // Update linear momentum
