@@ -1,13 +1,15 @@
-use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, sound, Engine, DT};
+use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, sound, Engine, DT, save_load};
 use rand;
 use rodio::{source::SineWave, source::Source, SpatialSink};
 use std::io::BufReader;
 use std::thread;
 use std::time::Duration;
 use winit;
+use save_load::{new_save,parse_save};
 
 const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
+const SAVE_PATH: &str = "saves/save.json";
 
 #[derive(Clone, Debug)]
 pub struct Player {
@@ -54,6 +56,43 @@ impl Player {
         self.body.ang_mom += a;
         self.velocity = self.body.lin_mom;
     }
+
+    fn new()-> Player{
+        let loaded_save = save_load::parse_save(String::from(SAVE_PATH));
+
+        match loaded_save{
+        Ok(load)=>{
+            let player = return Player {
+                body: Sphere {
+                    c: Pos3::new(load.location.x, load.location.y, load.location.z),
+                    r: 0.3,
+                    lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                    ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                    mass: 1.0,
+                },
+                velocity: Vec3::zero(),
+                acc: Vec3::zero(),
+                omega: Vec3::zero(),
+                rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+            };
+
+        }
+        Err(_)=>{let player = return Player {
+            body: Sphere {
+                c: Pos3::new(0.0, 3.0, 0.0),
+                r: 0.3,
+                lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                mass: 1.0,
+            },
+            velocity: Vec3::zero(),
+            acc: Vec3::zero(),
+            omega: Vec3::zero(),
+            rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+        };
+    }
+    }
+}
 }
 
 trait Camera {
@@ -305,6 +344,10 @@ impl engine3d::Game for Game {
     type StaticData = GameData;
     fn start(engine: &mut Engine) -> (Self, Self::StaticData) {
         use rand::Rng;
+
+        
+        let player = Player::new();
+
         let wall = Wall {
             body: Plane {
                 n: Vec3::new(0.0, 1.0, 0.0),
@@ -312,19 +355,7 @@ impl engine3d::Game for Game {
             },
             control: (0, 0),
         };
-        let player = Player {
-            body: Sphere {
-                c: Pos3::new(0.0, 3.0, 0.0),
-                r: 0.3,
-                lin_mom: Vec3::new(0.0, 0.0, 0.0),
-                ang_mom: Vec3::new(0.0, 0.0, 0.0),
-                mass: 1.0,
-            },
-            velocity: Vec3::zero(),
-            acc: Vec3::zero(),
-            omega: Vec3::zero(),
-            rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-        };
+        
         let td_player = player.clone();
         let camera = OrbitCamera::new();
         let alt_camera = TopDownCamera::new();
@@ -457,6 +488,9 @@ impl engine3d::Game for Game {
         if engine.events.key_pressed(KeyCode::C) {
             self.use_alt_cam = !self.use_alt_cam;
             self.td_player = self.player.clone();
+        }
+        if engine.events.key_pressed(KeyCode::X) {
+           save_load::new_save(self.player.body.c.clone(),String::from(SAVE_PATH));
         }
 
         if self.use_alt_cam {

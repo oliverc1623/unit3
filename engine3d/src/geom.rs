@@ -26,15 +26,13 @@ impl Shape for Sphere {
         self.c += v;
     }
     fn apply_impulse(&mut self, disp: Vec3) {
-
         // This is calculating and applying the impulse, the assumption is that it is only stationaty contacts
         // let bounce = 0.9;
         // let d = self.lin_mom.dot(n);
         // let j = (-(1.0 + bounce) * d).max(0.0);
 
-        let mr = (2.0/5.0) * self.mass * self.r * self.r;
+        let mr = (2.0 / 5.0) * self.mass * self.r * self.r;
         let contact_point = self.c.to_vec() + Vec3::new(0.0, 1.0, 0.0) * self.r; // The point of contact
-
 
         let m = self.mass;
         let e = 0.9;
@@ -262,21 +260,14 @@ impl Cast<AABB> for Ray {
 struct Bivector3 {
     xy: f32,
     xz: f32,
-    yz: f32
+    yz: f32,
 }
 
 impl Bivector3 {
-
     fn new(xy: f32, xz: f32, yz: f32) -> Self {
-        Bivector3 {
-            xy,
-            xz,
-            yz
-        }
+        Bivector3 { xy, xz, yz }
     }
-
 }
-
 
 // struct Rotor {
 
