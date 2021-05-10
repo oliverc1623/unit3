@@ -187,12 +187,30 @@ impl Collide<AABB> for Sphere {
         let vals = Vec3::new(x, y, z);
         let distance = vals.distance(self.c.to_vec());
         if distance < self.r{
-            println!("collide!");
+            println!("collide! {}, {}", distance, self.r);
         }
         return distance < self.r;
     }
 
     fn disp(&self, b: &AABB) -> Option<Vec3>{
+        let minX = b.c.x - b.half_sizes[0] * 2.0;
+        let maxX = b.c.x + b.half_sizes[0] * 2.0;
+        let minY = b.c.y - b.half_sizes[1] * 2.0;
+        let maxY = b.c.y + b.half_sizes[1] * 2.0;
+        let minZ = b.c.z - b.half_sizes[2] * 2.0;
+        let maxZ = b.c.z + b.half_sizes[2] * 2.0;
+
+        let x = minX.max(self.c.x.min(maxX));
+        let y = minY.max(self.c.y.min(maxY));
+        let z = minZ.max(self.c.z.min(maxZ));
+
+        let cp = Vec3::new(x, y, z);
+        let distance = cp.distance(self.c.to_vec());
+        if distance < self.r {
+            println!("collide! {}, {}", distance, self.r);
+            // return Some(cp - self.c.to_vec());
+            return None;
+        }
         None
     }
 }
