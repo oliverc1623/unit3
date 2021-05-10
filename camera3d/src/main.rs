@@ -24,7 +24,10 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)) * Mat4::from(self.rot)).into(),
+                model: ((Mat4::from_translation(self.body.c.to_vec())
+                    * Mat4::from_scale(self.body.r))
+                    * Mat4::from(self.rot))
+                .into(),
                 // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
@@ -51,8 +54,6 @@ impl Player {
         self.body.ang_mom += a;
         self.velocity = self.body.lin_mom;
     }
-
-    
 }
 
 trait Camera {
@@ -154,6 +155,37 @@ impl Camera for OrbitCamera {
 }
 
 #[derive(Clone, Debug)]
+pub struct TopDownCamera {
+    pub distance: f32,
+    player_pos: Pos3,
+}
+
+impl Camera for TopDownCamera {
+    fn new() -> Self {
+        Self {
+            distance: 15.0,
+            player_pos: Pos3::new(0.0, 0.0, 0.0),
+        }
+    }
+    fn update(&mut self, events: &engine3d::events::Events, player: &Player) {
+        if events.key_pressed(KeyCode::Up) {
+            self.distance -= 0.5;
+        }
+        if events.key_pressed(KeyCode::Down) {
+            self.distance += 0.5;
+        }
+        self.player_pos = player.body.c;
+    }
+    fn update_camera(&self, c: &mut engine3d::camera::Camera) {
+        // The camera should point at the player
+        c.target = self.player_pos;
+        let offset = Vec3::new(0.0, self.distance, 0.001);
+        c.eye = self.player_pos + offset;
+        // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct Marbles {
     pub body: Vec<Sphere>,
     pub velocity: Vec<Vec3>,
@@ -246,16 +278,19 @@ impl Cube {
     }
 }
 
-struct Game<Cam: Camera> {
+struct Game {
     marbles: Marbles,
     cubes: Vec<Cube>,
     wall: Wall,
     player: Player,
-    camera: Cam,
+    td_player: Player,
+    camera: OrbitCamera,
+    alt_camera: TopDownCamera,
     pm: Vec<collision::Contact<usize>>,
     pw: Vec<collision::Contact<usize>>,
     mm: Vec<collision::Contact<usize>>,
     mw: Vec<collision::Contact<usize>>,
+    use_alt_cam: bool,
     // sound: sound::Sound,
 }
 struct GameData {
@@ -266,7 +301,7 @@ struct GameData {
     // sound: sound::Sound,
 }
 
-impl<C: Camera> engine3d::Game for Game<C> {
+impl engine3d::Game for Game {
     type StaticData = GameData;
     fn start(engine: &mut Engine) -> (Self, Self::StaticData) {
         use rand::Rng;
@@ -290,7 +325,9 @@ impl<C: Camera> engine3d::Game for Game<C> {
             omega: Vec3::zero(),
             rot: Quat::new(1.0, 0.0, 0.0, 0.0),
         };
-        let camera = C::new();
+        let td_player = player.clone();
+        let camera = OrbitCamera::new();
+        let alt_camera = TopDownCamera::new();
         let mut rng = rand::thread_rng();
         let marbles = Marbles {
             body: (0..NUM_MARBLES)
@@ -337,12 +374,15 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 wall,
                 cubes,
                 player,
+                td_player,
                 camera,
+                alt_camera,
                 // TODO nice this up somehow
                 mm: vec![],
                 mw: vec![],
                 pm: vec![],
                 pw: vec![],
+                use_alt_cam: false,
             },
             GameData {
                 wall_model,
@@ -370,41 +410,71 @@ impl<C: Camera> engine3d::Game for Game<C> {
         // TODO update camera with controls/player movement
         // TODO TODO show how spherecasting could work?  camera pseudo-entity collision check?  camera entity for real?
         // self.camera_controller.update(engine);
-
         self.player.acc = Vec3::zero();
-        if engine.events.key_held(KeyCode::W) {
-            self.player.apply_impulse(Vec3::new(0.0, 0.0, 0.1), Vec3::new(0.1, 0.0, 0.0));
-        } else if engine.events.key_held(KeyCode::S) {
-            self.player.apply_impulse(Vec3::new(0.0, 0.0, -0.1), Vec3::new(-0.1, 0.0, 0.0));
-        }
+        if self.use_alt_cam {
+            if engine.events.key_held(KeyCode::W) {
+                self.td_player.body.c.z += -0.1;
+            } else if engine.events.key_held(KeyCode::S) {
+                self.td_player.body.c.z += 0.1;
+            }
 
-        if engine.events.key_held(KeyCode::A) {
-            self.player.apply_impulse(Vec3::new(0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, -0.1));
-        } else if engine.events.key_held(KeyCode::D) {
-            self.player.apply_impulse(Vec3::new(-0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.1));
-        }
-        if self.player.body.lin_mom.magnitude2() > 1.3 {
-            self.player.body.lin_mom = self.player.body.lin_mom.normalize_to(1.3);
-        }
-        if self.player.body.ang_mom.magnitude2() > 1.3 {
-            self.player.body.ang_mom = self.player.body.ang_mom.normalize_to(1.3);
-        }
-
-        if engine.events.key_held(KeyCode::Q) {
-            self.player.omega = Vec3::unit_y();
-        } else if engine.events.key_held(KeyCode::E) {
-            self.player.omega = -Vec3::unit_y();
+            if engine.events.key_held(KeyCode::A) {
+                self.td_player.body.c.x += -0.1;
+            } else if engine.events.key_held(KeyCode::D) {
+                self.td_player.body.c.x += 0.1;
+            }
         } else {
-            self.player.omega = Vec3::zero();
+            if engine.events.key_held(KeyCode::W) {
+                self.player
+                    .apply_impulse(Vec3::new(0.0, 0.0, 0.1), Vec3::new(0.1, 0.0, 0.0));
+            } else if engine.events.key_held(KeyCode::S) {
+                self.player
+                    .apply_impulse(Vec3::new(0.0, 0.0, -0.1), Vec3::new(-0.1, 0.0, 0.0));
+            }
+
+            if engine.events.key_held(KeyCode::A) {
+                self.player
+                    .apply_impulse(Vec3::new(0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, -0.1));
+            } else if engine.events.key_held(KeyCode::D) {
+                self.player
+                    .apply_impulse(Vec3::new(-0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.1));
+            }
+            if self.player.body.lin_mom.magnitude2() > 1.3 {
+                self.player.body.lin_mom = self.player.body.lin_mom.normalize_to(1.3);
+            }
+            if self.player.body.ang_mom.magnitude2() > 1.3 {
+                self.player.body.ang_mom = self.player.body.ang_mom.normalize_to(1.3);
+            }
+
+            if engine.events.key_held(KeyCode::Q) {
+                self.player.omega = Vec3::unit_y();
+            } else if engine.events.key_held(KeyCode::E) {
+                self.player.omega = -Vec3::unit_y();
+            } else {
+                self.player.omega = Vec3::zero();
+            }
+        }
+        if engine.events.key_pressed(KeyCode::C) {
+            self.use_alt_cam = !self.use_alt_cam;
+            self.td_player = self.player.clone();
         }
 
-        // orbit camera
-        self.camera.update(&engine.events, &self.player);
+        if self.use_alt_cam {
+            self.alt_camera.update(&engine.events, &self.td_player);
+            //self.td_player.integrate();
+        } else {
+            self.camera.update(&engine.events, &self.player);
+            self.player.integrate();
+        }
 
         self.wall.integrate();
         self.player.integrate();
         self.marbles.integrate();
-        self.camera.integrate();
+        if self.use_alt_cam {
+            self.alt_camera.integrate();
+        } else {
+            self.camera.integrate();
+        }
 
         {
             use rand::Rng;
@@ -463,7 +533,11 @@ impl<C: Camera> engine3d::Game for Game<C> {
             self.player.body.ang_mom *= 0.98;
         }
 
-        self.camera.update_camera(engine.camera_mut());
+        if self.use_alt_cam {
+            self.alt_camera.update_camera(engine.camera_mut());
+        } else {
+            self.camera.update_camera(engine.camera_mut());
+        }
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
             let cube_pos = self.cubes[0].body.c;
@@ -518,5 +592,5 @@ fn main() {
     env_logger::init();
     let title = env!("CARGO_PKG_NAME");
     let window = winit::window::WindowBuilder::new().with_title(title);
-    run::<GameData, Game<OrbitCamera>>(window, std::path::Path::new("content"));
+    run::<GameData, Game>(window, std::path::Path::new("content"));
 }
