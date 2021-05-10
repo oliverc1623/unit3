@@ -220,12 +220,10 @@ impl Collide<AABB> for Sphere {
         } else {
             disp.z = self.r - disp.z;
         }
-
-        disp = disp / 10.0;
         
         if distance < self.r {
             println!("collide! {}, {}", distance, self.r);
-            return Some(-(cp - self.c.to_vec()));
+            return Some(-disp);
             // return None;
         }
         None
