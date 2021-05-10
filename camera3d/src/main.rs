@@ -24,10 +24,7 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: ((Mat4::from_translation(self.body.c.to_vec())
-                    * Mat4::from_scale(self.body.r))
-                    * Mat4::from(self.rot))
-                .into(),
+                model: ( Mat4::from_translation(self.body.c.to_vec()) * Mat4::from(self.rot) * Mat4::from_scale(self.body.r)).into(),
                 // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
@@ -262,6 +259,7 @@ impl Wall {
 
 struct Cube {
     pub body: Box,
+    pub velocity: f32,
 }
 
 impl Cube {
