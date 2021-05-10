@@ -6,6 +6,7 @@ pub type Mat3 = cgmath::Matrix3<f32>;
 pub type Mat4 = cgmath::Matrix4<f32>;
 pub type Quat = cgmath::Quaternion<f32>;
 pub const PI: f32 = std::f32::consts::PI;
+use std::num;
 
 pub trait Shape {
     fn translate(&mut self, v: Vec3);
@@ -31,8 +32,8 @@ impl Shape for Sphere {
         // let d = self.lin_mom.dot(n);
         // let j = (-(1.0 + bounce) * d).max(0.0);
 
-        let mr = (2.0 / 5.0) * self.mass * self.r * self.r;
-        let contact_point = self.c.to_vec() + Vec3::new(0.0, 1.0, 0.0) * self.r; // The point of contact
+        let mr = (2.0/5.0) * self.mass * self.r * self.r;
+        let contact_point = self.c.to_vec() + disp.normalize() * self.r; // The point of contact
 
         let m = self.mass;
         let e = 0.9;
@@ -40,8 +41,13 @@ impl Shape for Sphere {
         let v = self.lin_mom + self.ang_mom.cross(contact_point - self.c.to_vec());
         let r = contact_point - self.c.to_vec();
         let i = Mat3::new(mr, 0.0, 0.0, 0.0, mr, 0.0, 0.0, 0.0, mr);
+
+        println!("DISP: {}, {}, {}", disp.x, disp.y, disp.z);
+
         let u = 0.5;
         let t = -v;
+
+
 
         let num = -(1.0 + e) * v.dot(n);
         let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
@@ -52,7 +58,7 @@ impl Shape for Sphere {
 
         self.lin_mom += j_new * n; // Update linear momentum
         self.ang_mom += r.cross(j_new * n); // Update angular momentum
-        println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
+        // println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
     }
 }
 
@@ -163,6 +169,62 @@ impl Collide<Plane> for Sphere {
         } else {
             None
         }
+    }
+}
+
+impl Collide<AABB> for Sphere {
+    fn touching(&self, b: &AABB) -> bool {
+        let minX = b.c.x - b.half_sizes[0];
+        let maxX = b.c.x + b.half_sizes[0];
+        let minY = b.c.y - b.half_sizes[1];
+        let maxY = b.c.y + b.half_sizes[1];
+        let minZ = b.c.z - b.half_sizes[2];
+        let maxZ = b.c.z + b.half_sizes[2];
+
+        let x = minX.max(self.c.x.min(maxX));
+        let y = minY.max(self.c.y.min(maxY));
+        let z = minZ.max(self.c.z.min(maxZ));
+
+        let vals = Vec3::new(x, y, z);
+        let distance = vals.distance(self.c.to_vec());
+        if distance < self.r{
+            println!("collide! {}, {}", distance, self.r);
+        }
+        return distance < self.r;
+    }
+
+    fn disp(&self, b: &AABB) -> Option<Vec3>{
+        let minX = b.c.x - b.half_sizes[0] * 2.0;
+        let maxX = b.c.x + b.half_sizes[0] * 2.0;
+        let minY = b.c.y - b.half_sizes[1] * 2.0;
+        let maxY = b.c.y + b.half_sizes[1] * 2.0;
+        let minZ = b.c.z - b.half_sizes[2] * 2.0;
+        let maxZ = b.c.z + b.half_sizes[2] * 2.0;
+
+        let x = minX.max(self.c.x.min(maxX));
+        let y = minY.max(self.c.y.min(maxY));
+        let z = minZ.max(self.c.z.min(maxZ));
+
+        let cp = Vec3::new(x, y, z);
+        let distance = cp.distance(self.c.to_vec());
+
+        let mut disp = - cp - self.c.to_vec();
+        if disp.x != 0.0 {
+            disp.x = self.r - disp.x;
+        } else if disp.y != 0.0 {
+            disp.y = self.r - disp.y;
+        } else {
+            disp.z = self.r - disp.z;
+        }
+
+        disp = disp / 2.0;
+        
+        if distance < self.r {
+            println!("collide! {}, {}", distance, self.r);
+            return Some(-(cp - self.c.to_vec()));
+            // return None;
+        }
+        None
     }
 }
 

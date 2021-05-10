@@ -26,35 +26,32 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: ((Mat4::from_translation(self.body.c.to_vec())
-                    * Mat4::from_scale(self.body.r))
-                    * Mat4::from(self.rot))
-                .into(),
+                model: ( Mat4::from_translation(self.body.c.to_vec()) * Mat4::from(self.rot) * Mat4::from_scale(self.body.r)).into(),
                 // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
     }
     fn integrate(&mut self) {
-        self.velocity = self.body.lin_mom;
+        
         // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
         self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
+        self.velocity = self.body.lin_mom;
 
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
         }
 
         self.body.c += self.velocity * DT;
-        self.body.lin_mom = self.velocity;
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
-        self.body.lin_mom = self.velocity;
+        
     }
 
     fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
         self.body.lin_mom += l;
         self.body.ang_mom += a;
-        self.velocity = self.body.lin_mom;
+        // self.velocity = self.body.lin_mom;
     }
 
     fn new()-> Player{
@@ -160,11 +157,11 @@ impl Camera for OrbitCamera {
     }
     fn update(&mut self, events: &engine3d::events::Events, player: &Player) {
         let (dx, dy) = events.mouse_delta();
-        //self.pitch += dy / 100.0;
-        //self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
+        self.pitch += dy / 100.0;
+        self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
 
         self.yaw += dx / 100.0;
-        self.yaw = self.yaw.clamp(-PI, PI);
+        self.yaw = self.yaw.clamp(-PI / 4.0, PI / 4.0);
         if events.key_pressed(KeyCode::Up) {
             self.distance -= 0.5;
         }
@@ -180,14 +177,14 @@ impl Camera for OrbitCamera {
         c.target = self.player_pos;
         // And rotated around the player's position and offset backwards
 
-        let camera_rot = 
-              Quat::from(cgmath::Euler::new(
-                 cgmath::Rad(self.pitch),
-                 cgmath::Rad(self.yaw),
-                 cgmath::Rad(0.0),
-             ));
-        let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
-        c.eye = self.player_pos + offset;
+        // let camera_rot = self.player_rot
+        //     * Quat::from(cgmath::Euler::new(
+        //         cgmath::Rad(self.pitch),
+        //         cgmath::Rad(self.yaw),
+        //         cgmath::Rad(0.0),
+        //     ));
+        // let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
+        // c.eye = self.player_pos + offset;
 
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
     }
@@ -300,7 +297,8 @@ impl Wall {
 }
 
 struct Cube {
-    pub body: Box,
+    pub body: AABB,
+    pub velocity: Vec3,
 }
 
 impl Cube {
@@ -314,6 +312,10 @@ impl Cube {
                 .into(),
             },
         );
+    }
+
+    fn integrate(&mut self) {
+        self.body.c += self.velocity * DT;
     }
 }
 
@@ -329,6 +331,7 @@ struct Game {
     pw: Vec<collision::Contact<usize>>,
     mm: Vec<collision::Contact<usize>>,
     mw: Vec<collision::Contact<usize>>,
+    pb: Vec<collision::Contact<usize>>,
     use_alt_cam: bool,
     // sound: sound::Sound,
 }
@@ -379,19 +382,19 @@ impl engine3d::Game for Game {
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
 
-        let b = Box {
+        let b = AABB {
             c: Pos3::new(1.0, 1.0, 1.0),
-            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
-        let b2 = Box {
+        let b2 = AABB {
             c: Pos3::new(18.0, 1.0, 22.0),
-            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
-        let cubes = vec![Cube { body: b }, Cube { body: b2 }];
+        let cubes = vec![Cube { body: b, velocity:Vec3::zero() }, Cube { body: b2, velocity: Vec3::zero() }];
         // let cubes = vec![];
 
         let wall_model = engine.load_model("floor.obj");
@@ -413,6 +416,7 @@ impl engine3d::Game for Game {
                 mw: vec![],
                 pm: vec![],
                 pw: vec![],
+                pb: vec![],
                 use_alt_cam: false,
             },
             GameData {
@@ -504,6 +508,7 @@ impl engine3d::Game for Game {
         self.wall.integrate();
         self.player.integrate();
         self.marbles.integrate();
+        self.cubes.iter_mut().for_each(|b| b.integrate());
         if self.use_alt_cam {
             self.alt_camera.integrate();
         } else {
@@ -528,10 +533,12 @@ impl engine3d::Game for Game {
         self.mw.clear();
         self.pm.clear();
         self.pw.clear();
+        self.pb.clear();
         let mut pb = [self.player.body];
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
+        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -540,6 +547,12 @@ impl engine3d::Game for Game {
             &mut self.marbles.velocity,
             &[self.wall.body],
             &mut self.mw,
+        );
+        collision::restitute_dyn_stat(
+            &mut pb,
+            &mut pv,
+            &[self.cubes[0].body, self.cubes[1].body],
+            &mut self.pb,
         );
         collision::restitute_dyns(
             &mut self.marbles.body,
