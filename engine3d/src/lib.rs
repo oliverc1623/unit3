@@ -25,7 +25,7 @@ pub trait Game: Sized {
     type StaticData;
     fn start(engine: &mut Engine) -> (Self, Self::StaticData);
     fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound);
-    fn render(&mut self, rules: &Self::StaticData, assets:&Assets, igs: &mut InstanceGroups);
+    fn render(&mut self, rules: &Self::StaticData, assets: &Assets, igs: &mut InstanceGroups);
 }
 
 pub struct Engine {
@@ -96,12 +96,12 @@ pub fn run<R, G: Game<StaticData = R>>(
     let mut sink = rodio::SpatialSink::try_new(
         &handle,
         [-10.0, 0.0, 0.0], // emitter position
-        [1.0, 0.0, 0.0], // left ear
-        [-1.0, 0.0, 0.0], // right ear
+        [1.0, 0.0, 0.0],   // left ear
+        [-1.0, 0.0, 0.0],  // right ear
     )
     .unwrap();
     // sink.set_volume(5.0);
-    let mut sound = sound::Sound{sink};
+    let mut sound = sound::Sound { sink };
     // sound.add_sound("content/beep3.ogg");
 
     event_loop.run_return(move |event, _, control_flow| {
@@ -149,7 +149,6 @@ pub fn run<R, G: Game<StaticData = R>>(
                 // The renderer "produces" time...
                 available_time += since.elapsed().as_secs_f32();
                 since = Instant::now();
-                
             }
             _ => {}
         }

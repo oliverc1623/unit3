@@ -88,7 +88,10 @@ fn convert_min_filter(f: Option<gltf::texture::MinFilter>) -> wgpu::FilterMode {
         Some(gltf::texture::MinFilter::Linear) => wgpu::FilterMode::Linear,
         Some(gltf::texture::MinFilter::Nearest) => wgpu::FilterMode::Nearest,
         Some(f) => {
-            println!("mipmap config loading not supported ({:?}), falling back to nearest", f);
+            println!(
+                "mipmap config loading not supported ({:?}), falling back to nearest",
+                f
+            );
             wgpu::FilterMode::Nearest
         }
     }
@@ -220,7 +223,12 @@ impl Model {
                     .base_color_texture()
                     .unwrap()
                     .texture();
-                let gltf::image::Data{pixels,format,width,height} = images[diffuse.source().index()].clone();
+                let gltf::image::Data {
+                    pixels,
+                    format,
+                    width,
+                    height,
+                } = images[diffuse.source().index()].clone();
                 let sam = diffuse.sampler();
                 use gltf::image::Format;
                 use image::DynamicImage as DI;
@@ -229,52 +237,22 @@ impl Model {
                     queue,
                     &match format {
                         Format::R8 => DI::ImageLuma8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         Format::R8G8 => DI::ImageLumaA8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         Format::R8G8B8 => DI::ImageRgb8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         Format::R8G8B8A8 => DI::ImageRgba8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         Format::B8G8R8 => DI::ImageBgr8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         Format::B8G8R8A8 => DI::ImageBgra8(
-                            image::ImageBuffer::from_raw(
-                                width,
-                                height,
-                                pixels,
-                            )
-                            .unwrap(),
+                            image::ImageBuffer::from_raw(width, height, pixels).unwrap(),
                         ),
                         // Format::R16 => DI::ImageLuma16(image::ImageBuffer::from_raw(diffuse_image.width, diffuse_image.height, diffuse_image.pixels).unwrap()),
                         // Format::R16G16 => DI::ImageLumaA16(image::ImageBuffer::from_raw(diffuse_image.width, diffuse_image.height, diffuse_image.pixels).unwrap()),
@@ -313,12 +291,16 @@ impl Model {
             .collect();
         if materials.len() == 0 {
             // TODO if empty use a default material
-            materials.push( {
+            materials.push({
                 use image::DynamicImage as DI;
                 let diffuse_texture = texture::Texture::from_image(
                     device,
                     queue,
-                    &DI::ImageRgb8(image::ImageBuffer::from_pixel(16,16,image::Rgb([255,0,255]))),
+                    &DI::ImageRgb8(image::ImageBuffer::from_pixel(
+                        16,
+                        16,
+                        image::Rgb([255, 0, 255]),
+                    )),
                     Some("Default Material"),
                     wgpu::AddressMode::Repeat,
                     wgpu::AddressMode::Repeat,
@@ -359,7 +341,7 @@ impl Model {
                 Some(gltf::mesh::util::ReadIndices::U16(idxs)) => idxs.map(|i| i as u32).collect(),
                 Some(gltf::mesh::util::ReadIndices::U32(idxs)) => idxs.map(|i| i as u32).collect(),
                 // TODO be smarter about indices
-                None => (0..(positions.len() as u32)).collect()
+                None => (0..(positions.len() as u32)).collect(),
             };
             let normal: Vec<[f32; 3]> = reader
                 .read_normals()
@@ -421,7 +403,10 @@ impl Model {
                     tex_coords: tc,
                     normal: n,
                     bone_ids: {
-                        ((bi[0] as u32) << 24) | ((bi[1] as u32) << 16) | ((bi[2] as u32) << 8) | (bi[3] as u32)
+                        ((bi[0] as u32) << 24)
+                            | ((bi[1] as u32) << 16)
+                            | ((bi[2] as u32) << 8)
+                            | (bi[3] as u32)
                     },
                     bone_weights: bw,
                 })

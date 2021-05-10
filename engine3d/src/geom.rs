@@ -12,7 +12,6 @@ pub trait Shape {
     fn apply_impulse(&mut self, v: Vec3);
 }
 
-
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub struct Sphere {
     pub c: Pos3,
@@ -25,7 +24,6 @@ impl Shape for Sphere {
         self.c += v;
     }
     fn apply_impulse(&mut self, disp: Vec3) {
-
         let bounce = 0.9;
 
         let n = disp / disp.magnitude();

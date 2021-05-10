@@ -1,10 +1,10 @@
-use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, Engine, DT, sound};
+use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, sound, Engine, DT};
 use rand;
-use winit;
+use rodio::{source::SineWave, source::Source, SpatialSink};
 use std::io::BufReader;
 use std::thread;
 use std::time::Duration;
-use rodio::{SpatialSink, source::SineWave, source::Source};
+use winit;
 
 const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
@@ -24,7 +24,9 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: (Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)).into(),
+                model: (Mat4::from_translation(self.body.c.to_vec())
+                    * Mat4::from_scale(self.body.r))
+                .into(),
             },
         );
     }
@@ -229,7 +231,7 @@ impl Cube {
                 model: (Mat4::from_translation(self.body.c.to_vec())
                     * Mat4::from_nonuniform_scale(scale.x, scale.y, scale.y))
                 .into(),
-            }
+            },
         );
     }
 }
@@ -269,7 +271,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
             body: Sphere {
                 c: Pos3::new(0.0, 3.0, 0.0),
                 r: 0.3,
-                momentum: Vec3::new(0.0, 0.0, 0.0)
+                momentum: Vec3::new(0.0, 0.0, 0.0),
             },
             velocity: Vec3::zero(),
             acc: Vec3::zero(),
@@ -288,7 +290,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
                     Sphere {
                         c: Pos3::new(x, y, z),
                         r,
-                        momentum: Vec3::new(0.0, 0.0, 0.0)
+                        momentum: Vec3::new(0.0, 0.0, 0.0),
                     }
                 })
                 .collect::<Vec<_>>(),
@@ -300,12 +302,16 @@ impl<C: Camera> engine3d::Game for Game<C> {
             axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
-                
-        let cubes = vec![Cube{
-            body: b
-        }];
+
+        let b2 = Box {
+            c: Pos3::new(18.0, 1.0, 22.0),
+            axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            half_sizes: Vec3::new(1.0, 1.0, 1.0),
+        };
+
+        let cubes = vec![Cube { body: b }, Cube { body: b2 }];
         // let cubes = vec![];
-    
+
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
         let player_model = engine.load_model("sphere.obj");
@@ -332,7 +338,12 @@ impl<C: Camera> engine3d::Game for Game<C> {
             },
         )
     }
-    fn render(&mut self, rules: &Self::StaticData, assets: &engine3d::assets::Assets, igs: &mut InstanceGroups) {
+    fn render(
+        &mut self,
+        rules: &Self::StaticData,
+        assets: &engine3d::assets::Assets,
+        igs: &mut InstanceGroups,
+    ) {
         self.wall.render(rules, igs);
         self.marbles.render(rules, igs);
         self.player.render(rules, igs);
@@ -435,9 +446,9 @@ impl<C: Camera> engine3d::Game for Game<C> {
         }
 
         self.camera.update_camera(engine.camera_mut());
-        // play sound        
+        // play sound
         if engine.events.key_pressed(KeyCode::H) {
-            let cube_pos = self.cubes[0].body.c;
+            let cube_pos = self.cubes[1].body.c;
             println!("cubex pos: {}", cube_pos[0]);
             println!("cube z pos: {}", cube_pos[2]);
             println!("my x pos: {}", self.player.body.c[0]);
@@ -446,7 +457,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
             let x_diff = cube_pos[0] - self.player.body.c[0];
             let z_diff = cube_pos[2] - self.player.body.c[2];
             // top right
-            if  x_diff > 0.0 && z_diff < 0.0 {
+            if x_diff > 0.0 && z_diff < 0.0 {
                 // we are to right of cube
                 println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
@@ -455,7 +466,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 sound.play_bottom_to_top(z_diff);
             }
             // bottom left
-            if  x_diff > 0.0 && z_diff > 0.0 {
+            if x_diff > 0.0 && z_diff > 0.0 {
                 // we are to right of cube
                 println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
@@ -463,8 +474,8 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }
-            // top left
-            if  x_diff < 0.0 && z_diff > 0.0 {
+            // top right
+            if x_diff < 0.0 && z_diff > 0.0 {
                 // we are to right of cube
                 println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
@@ -473,7 +484,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 sound.play_top_to_bottom(z_diff);
             }
             // bottom right
-            if  x_diff < 0.0 && z_diff > 0.0 {
+            if x_diff < 0.0 && z_diff < 0.0 {
                 // we are to right of cube
                 println!("xdip: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
@@ -481,7 +492,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }
-        } 
+        }
     }
 }
 

@@ -5,7 +5,7 @@ use crate::model::{DrawModel, Model};
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable, Default)]
 pub struct Bone {
     pub translation: [f32; 3],
-    pub ignored:f32,
+    pub ignored: f32,
     pub rotation: [f32; 4], // a quaternion
 }
 
@@ -27,10 +27,14 @@ impl Rig {
     pub fn from_gltf(_g: &gltf::Document, bufs: &[gltf::buffer::Data], skin: gltf::Skin) -> Self {
         let reader = skin.reader(|buffer| Some(&bufs[buffer.index()]));
         use std::collections::BTreeMap;
-        let mut nodes_to_joints: BTreeMap<usize, u8> = skin.joints().enumerate().map(|(ji,n)| {
-            assert!(ji < 255);
-            (n.index(), ji as u8)
-        }).collect();
+        let mut nodes_to_joints: BTreeMap<usize, u8> = skin
+            .joints()
+            .enumerate()
+            .map(|(ji, n)| {
+                assert!(ji < 255);
+                (n.index(), ji as u8)
+            })
+            .collect();
         let joints: Vec<_> = skin
             .joints()
             .enumerate()
@@ -70,8 +74,8 @@ impl Rig {
             nodes_to_joints,
         }
     }
-    pub fn reset(&self, bones:&mut [Bone]) {
-        for (j,b) in self.joints.iter().zip(bones.iter_mut()) {
+    pub fn reset(&self, bones: &mut [Bone]) {
+        for (j, b) in self.joints.iter().zip(bones.iter_mut()) {
             b.translation = j.translation.into();
             b.rotation = j.rotation.into();
         }
@@ -86,10 +90,12 @@ pub struct Anim {
     timings: Vec<f32>,
 }
 
-fn transpose_rowcol<T:Copy+cgmath::Zero>(inp: Vec<T>, num_rows: usize) -> Vec<T> {
-    if num_rows == 0 { return inp; }
+fn transpose_rowcol<T: Copy + cgmath::Zero>(inp: Vec<T>, num_rows: usize) -> Vec<T> {
+    if num_rows == 0 {
+        return inp;
+    }
     let num_cols = inp.len() / num_rows;
-    let mut outp = vec![T::zero();inp.len()];
+    let mut outp = vec![T::zero(); inp.len()];
     // From https://docs.rs/transpose/0.2.1/src/transpose/out_of_place.rs.html#17-26
     unsafe {
         for y in 0..num_rows {
@@ -221,13 +227,22 @@ impl Anim {
             // transform all direct child bones by this bone's transformation.
             let br = Quat::from(b.rotation);
             let bt = Vec3::from(b.translation);
-            let btrans = cgmath::Decomposed{scale:1.0, rot:br, disp:bt};
+            let btrans = cgmath::Decomposed {
+                scale: 1.0,
+                rot: br,
+                disp: bt,
+            };
             for &ci in j.children.iter() {
                 if ci == 255 {
                     break;
                 }
                 let b2 = &mut bones[ci as usize];
-                let b2trans = btrans*cgmath::Decomposed{scale:1.0, rot:b2.rotation.into(), disp:b2.translation.into()};
+                let b2trans = btrans
+                    * cgmath::Decomposed {
+                        scale: 1.0,
+                        rot: b2.rotation.into(),
+                        disp: b2.translation.into(),
+                    };
                 // augment b2 translation: include rotate-move from b to b2
                 b2.translation = b2trans.disp.into();
                 b2.rotation = b2trans.rot.into();
@@ -235,9 +250,17 @@ impl Anim {
             // but then we need to multiply by the inverse bind matrix to
             // turn this bone into a "change in vertex translations"
             let ibm = rig.ibms[ji];
-            let post_ibm:Mat4 = Mat4::from(cgmath::Decomposed{scale:1.0_f32,rot:Quat::from(b.rotation),disp:b.translation.into()})*ibm;
+            let post_ibm: Mat4 = Mat4::from(cgmath::Decomposed {
+                scale: 1.0_f32,
+                rot: Quat::from(b.rotation),
+                disp: b.translation.into(),
+            }) * ibm;
             let transl = post_ibm.w.truncate();
-            let rotn = Mat3::from_cols(post_ibm.x.truncate(), post_ibm.y.truncate(), post_ibm.z.truncate());
+            let rotn = Mat3::from_cols(
+                post_ibm.x.truncate(),
+                post_ibm.y.truncate(),
+                post_ibm.z.truncate(),
+            );
             let b = &mut bones[ji];
             b.translation = transl.into();
             b.rotation = Quat::from(rotn).into();

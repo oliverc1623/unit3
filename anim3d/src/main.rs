@@ -1,16 +1,21 @@
-use engine3d::{events::*, geom::*, render::InstanceGroups, run, Engine, DT, anim::Bone, sound};
+use engine3d::{anim::Bone, events::*, geom::*, render::InstanceGroups, run, sound, Engine, DT};
 use winit;
 
 #[derive(Clone, Debug)]
 pub struct Player {
     pos: Pos3,
     bones: Vec<Bone>,
-    t:f32,
-    anim:usize
+    t: f32,
+    anim: usize,
 }
 
 impl Player {
-    fn render(&mut self, rules: &GameData, assets:&engine3d::assets::Assets, igs: &mut InstanceGroups) {
+    fn render(
+        &mut self,
+        rules: &GameData,
+        assets: &engine3d::assets::Assets,
+        igs: &mut InstanceGroups,
+    ) {
         let anim = assets.get_anim(rules.player_anims[self.anim]).unwrap();
         let rig = assets.get_rig(rules.player_rig).unwrap();
         rig.reset(&mut self.bones);
@@ -18,19 +23,18 @@ impl Player {
         igs.render_anim(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: (Mat4::from_translation(self.pos.to_vec()) *
-                        Mat4::from_scale(0.01)).into(),
+                model: (Mat4::from_translation(self.pos.to_vec()) * Mat4::from_scale(0.01)).into(),
             },
             self.bones.clone(),
         );
     }
-    fn integrate(&mut self, rules:&GameData) {
+    fn integrate(&mut self, rules: &GameData) {
         self.t += DT;
         if self.t > 4.0 {
             self.t = 0.0;
             self.anim += 1;
             self.anim = self.anim % rules.player_anims.len();
-            println!("Switch to anim {}",self.anim);
+            println!("Switch to anim {}", self.anim);
         }
     }
 }
@@ -53,7 +57,7 @@ impl OrbitCamera {
         }
     }
     fn update(&mut self, events: &engine3d::events::Events, player: &Player) {
-        let (dx,dy) = events.mouse_delta();
+        let (dx, dy) = events.mouse_delta();
         self.pitch += dy / 100.0;
         self.pitch = self.pitch.clamp(-PI / 4.0, PI / 4.0);
 
@@ -77,11 +81,12 @@ impl OrbitCamera {
             cgmath::Rad(self.yaw),
             cgmath::Rad(0.0),
         ));
-        let camera_rot = camera_rot*Quat::from(cgmath::Euler::new(
-            cgmath::Rad(self.pitch),
-            cgmath::Rad(0.0),
-            cgmath::Rad(0.0),
-        ));
+        let camera_rot = camera_rot
+            * Quat::from(cgmath::Euler::new(
+                cgmath::Rad(self.pitch),
+                cgmath::Rad(0.0),
+                cgmath::Rad(0.0),
+            ));
         let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
         c.eye = self.player_pos + offset;
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
@@ -104,8 +109,8 @@ impl engine3d::Game for Game {
         let player = Player {
             pos: Pos3::new(0.0, 5.0, 0.0),
             bones: vec![engine3d::anim::Bone::default(); engine3d::render::BONE_MAX],
-            t:0.0,
-            anim:0
+            t: 0.0,
+            anim: 0,
         };
         let (player_models, player_rigs, player_anims) =
             engine.load_gltf("khronos/Fox/glTF/Fox.gltf");
@@ -121,7 +126,12 @@ impl engine3d::Game for Game {
             },
         )
     }
-    fn render(&mut self, rules: &Self::StaticData, assets:&engine3d::assets::Assets, igs: &mut InstanceGroups) {
+    fn render(
+        &mut self,
+        rules: &Self::StaticData,
+        assets: &engine3d::assets::Assets,
+        igs: &mut InstanceGroups,
+    ) {
         self.player.render(rules, assets, igs);
     }
     fn update(&mut self, rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound) {

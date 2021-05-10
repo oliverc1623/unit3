@@ -143,7 +143,8 @@ impl Render {
             label: Some("uniform_bind_group"),
         });
         use crate::geom::*;
-        let lights = vec![crate::lights::Light::point(Pos3::new(0.0,0.0,0.0), Vec3::zero());LIGHT_MAX];
+        let lights =
+            vec![crate::lights::Light::point(Pos3::new(0.0, 0.0, 0.0), Vec3::zero()); LIGHT_MAX];
         let light_uniform_size =
             (LIGHT_MAX * std::mem::size_of::<crate::lights::Light>()) as wgpu::BufferAddress;
         let light_buffer = device.create_buffer(&wgpu::BufferDescriptor {
@@ -491,7 +492,12 @@ impl Render {
                 let model = assets.get_model(*mr).unwrap();
                 for (i, (_ir, bones)) in irs.iter().zip(bones.chunks_exact(BONE_MAX)).enumerate() {
                     let i = i as u64;
-                    render_pass.set_vertex_buffer(1, buf.as_ref().unwrap().slice(i..(i + InstanceRaw::desc().array_stride)));
+                    render_pass.set_vertex_buffer(
+                        1,
+                        buf.as_ref()
+                            .unwrap()
+                            .slice(i..(i + InstanceRaw::desc().array_stride)),
+                    );
                     self.queue
                         .write_buffer(&self.bone_buffer, 0, bytemuck::cast_slice(&bones));
                     // TODO set up bones for model here and bone bind group?
