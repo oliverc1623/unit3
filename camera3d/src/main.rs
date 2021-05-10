@@ -30,26 +30,26 @@ impl Player {
         );
     }
     fn integrate(&mut self) {
-        self.velocity = self.body.lin_mom;
+        
         // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
         self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
+        self.velocity = self.body.lin_mom;
 
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
         }
 
         self.body.c += self.velocity * DT;
-        self.body.lin_mom = self.velocity;
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
-        self.body.lin_mom = self.velocity;
+        
     }
 
     fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
         self.body.lin_mom += l;
         self.body.ang_mom += a;
-        self.velocity = self.body.lin_mom;
+        // self.velocity = self.body.lin_mom;
     }
 }
 
@@ -292,6 +292,7 @@ struct Game {
     pw: Vec<collision::Contact<usize>>,
     mm: Vec<collision::Contact<usize>>,
     mw: Vec<collision::Contact<usize>>,
+    pb: Vec<collision::Contact<usize>>,
     use_alt_cam: bool,
     // sound: sound::Sound,
 }
@@ -376,8 +377,8 @@ impl engine3d::Game for Game {
             half_sizes: Vec3::new(15.0, 5.0, 1.0),
         };
 
-        let cubes = vec![Cube { body: b, velocity:Vec3::zero()}, 
-                        Cube { body: b2, velocity: Vec3::zero()}, 
+        let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
+                        Cube {body: b2, velocity: Vec3::zero()}, 
                         Cube{body: b3, velocity: Vec3::zero()},
                         Cube{body: b4, velocity: Vec3::zero()},
                         Cube{body: b5, velocity: Vec3::zero()}];
@@ -401,6 +402,7 @@ impl engine3d::Game for Game {
                 mw: vec![],
                 pm: vec![],
                 pw: vec![],
+                pb: vec![],
                 use_alt_cam: false,
             },
             GameData {
@@ -429,6 +431,12 @@ impl engine3d::Game for Game {
         // TODO update camera with controls/player movement
         // TODO TODO show how spherecasting could work?  camera pseudo-entity collision check?  camera entity for real?
         // self.camera_controller.update(engine);
+        if self.player.body.touching(&self.cubes[0].body) {
+            println!("touching emitting box");
+            self.cubes[0].velocity = Vec3::new(0.0, -1.0, 0.0);
+            self.cubes[1].velocity = Vec3::new(0.0, -1.0, 0.0);
+        }
+
         self.player.acc = Vec3::zero();
         if self.use_alt_cam {
             if engine.events.key_held(KeyCode::W) {
@@ -514,11 +522,12 @@ impl engine3d::Game for Game {
         self.mw.clear();
         self.pm.clear();
         self.pw.clear();
+        self.pb.clear();
         let mut pb = [self.player.body];
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pw);
+        collision::gather_contacts_ab(&pb, &[self.cubes[1].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -531,8 +540,8 @@ impl engine3d::Game for Game {
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
-            &[self.cubes[0].body, self.cubes[1].body],
-            &mut self.pw,
+            &[self.cubes[1].body],
+            &mut self.pb,
         );
         collision::restitute_dyns(
             &mut self.marbles.body,
@@ -613,13 +622,6 @@ impl engine3d::Game for Game {
                 sound.play_top_to_bottom(z_diff);
             }
         }
-
-        if self.player.body.touching(&self.cubes[0].body) {
-            println!("touching emitting box");
-            self.cubes[0].velocity = Vec3::new(0.0, -1.0, 0.0);
-            self.cubes[1].velocity = Vec3::new(0.0, -1.0, 0.0);
-        }
-
         sound.sink.pause();
     }
 }

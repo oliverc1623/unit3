@@ -8,6 +8,7 @@ pub struct Contact<T: Copy> {
 }
 
 pub fn restitute_dyn_stat<S1: Shape, S2: Shape>(
+    
     ashapes: &mut [S1],
     avels: &mut [Vec3],
     bshapes: &[S2],
@@ -24,6 +25,9 @@ pub fn restitute_dyn_stat<S1: Shape, S2: Shape>(
         if let Some(disp) = ashapes[a].disp(&bshapes[b]) {
             // We can imagine we're instantaneously applying a
             // velocity change to pop the object just above the floor.
+            if disp.x == 0.0 && disp.y == 0.0 && disp.z == 0.0{
+                continue;
+            }
             ashapes[a].apply_impulse(disp);
             ashapes[a].translate(disp);
             // It feels a little weird to be adding displacement (in
