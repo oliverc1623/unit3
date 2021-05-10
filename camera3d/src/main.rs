@@ -353,7 +353,7 @@ impl engine3d::Game for Game {
         let b = AABB {
             c: Pos3::new(1.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(1.0, 1.0, 1.0),
+            half_sizes: Vec3::new(2.0, 2.0, 2.0),
         };
 
         let b2 = AABB {
@@ -510,6 +510,12 @@ impl engine3d::Game for Game {
             &mut self.marbles.velocity,
             &[self.wall.body],
             &mut self.mw,
+        );
+        collision::restitute_dyn_stat(
+            &mut pb,
+            &mut pv,
+            &[self.cubes[0].body, self.cubes[1].body],
+            &mut self.pw,
         );
         collision::restitute_dyns(
             &mut self.marbles.body,
