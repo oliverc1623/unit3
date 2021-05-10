@@ -6,6 +6,7 @@ pub type Mat3 = cgmath::Matrix3<f32>;
 pub type Mat4 = cgmath::Matrix4<f32>;
 pub type Quat = cgmath::Quaternion<f32>;
 pub const PI: f32 = std::f32::consts::PI;
+use std::num;
 
 pub trait Shape {
     fn translate(&mut self, v: Vec3);
@@ -44,6 +45,8 @@ impl Shape for Sphere {
         let i = Mat3::new(mr, 0.0, 0.0, 0.0, mr, 0.0, 0.0, 0.0, mr);
         let u = 0.5;
         let t = -v;
+
+
 
         let num = -(1.0 + e) * v.dot(n);
         let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
@@ -165,6 +168,32 @@ impl Collide<Plane> for Sphere {
         } else {
             None
         }
+    }
+}
+
+impl Collide<AABB> for Sphere {
+    fn touching(&self, b: &AABB) -> bool {
+        let minX = b.c.x - b.half_sizes[0];
+        let maxX = b.c.x + b.half_sizes[0];
+        let minY = b.c.y - b.half_sizes[1];
+        let maxY = b.c.y + b.half_sizes[1];
+        let minZ = b.c.z - b.half_sizes[2];
+        let maxZ = b.c.z + b.half_sizes[2];
+
+        let x = minX.max(self.c.x.min(maxX));
+        let y = minY.max(self.c.y.min(maxY));
+        let z = minZ.max(self.c.z.min(maxZ));
+
+        let vals = Vec3::new(x, y, z);
+        let distance = vals.distance(self.c.to_vec());
+        if distance < self.r{
+            println!("collide!");
+        }
+        return distance < self.r;
+    }
+
+    fn disp(&self, b: &AABB) -> Option<Vec3>{
+        None
     }
 }
 
