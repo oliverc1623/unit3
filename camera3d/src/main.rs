@@ -466,7 +466,7 @@ impl<C: Camera> engine3d::Game for Game<C> {
         self.camera.update_camera(engine.camera_mut());
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
-            let cube_pos = self.cubes[1].body.c;
+            let cube_pos = self.cubes[0].body.c;
             println!("cubex pos: {}", cube_pos[0]);
             println!("cube z pos: {}", cube_pos[2]);
             println!("my x pos: {}", self.player.body.c[0]);
@@ -477,36 +477,36 @@ impl<C: Camera> engine3d::Game for Game<C> {
             // top right
             if x_diff > 0.0 && z_diff < 0.0 {
                 // we are to right of cube
-                println!("xdip: {}", x_diff);
+                println!("top right: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_left_to_right(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_bottom_to_top(z_diff);
             }
             // bottom left
-            if x_diff > 0.0 && z_diff > 0.0 {
+            if x_diff < 0.0 && z_diff > 0.0  {
                 // we are to right of cube
-                println!("xdip: {}", x_diff);
-                sound.add_sound("content/beep3.ogg");
-                sound.play_left_to_right(x_diff);
-                sound.add_sound("content/beep3.ogg");
-                sound.play_top_to_bottom(z_diff);
-            }
-            // top right
-            if x_diff < 0.0 && z_diff > 0.0 {
-                // we are to right of cube
-                println!("xdip: {}", x_diff);
+                println!("bottom left: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_right_to_left(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }
-            // bottom right
+            // top left
             if x_diff < 0.0 && z_diff < 0.0 {
                 // we are to right of cube
-                println!("xdip: {}", x_diff);
+                println!("top left: {}", x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_right_to_left(x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_bottom_to_top(z_diff);
+            }
+            // bottom right
+            if x_diff > 0.0 && z_diff > 0.0 {
+                // we are to right of cube
+                println!("bottom right: {}", x_diff);
+                sound.add_sound("content/beep3.ogg");
+                sound.play_left_to_right(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
             }

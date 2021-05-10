@@ -95,7 +95,7 @@ pub fn run<R, G: Game<StaticData = R>>(
     let (_stream, handle) = rodio::OutputStream::try_default().unwrap();
     let mut sink = rodio::SpatialSink::try_new(
         &handle,
-        [-10.0, 0.0, 0.0], // emitter position
+        [-10.0, 0.0, -10.0], // emitter position
         [1.0, 0.0, 0.0],   // left ear
         [-1.0, 0.0, 0.0],  // right ear
     )
