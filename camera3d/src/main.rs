@@ -20,25 +20,35 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: (Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)).into(),
+                model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r)) * Mat4::from(self.rot)).into(),
+                // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
     }
     fn integrate(&mut self) {
-        self.velocity = self.body.momentum;
-        self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
+        self.velocity = self.body.lin_mom;
+        // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
+        self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
+
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
         }
+
         self.body.c += self.velocity * DT;
+        self.body.lin_mom = self.velocity;
+
+        self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
-        self.body.momentum = self.velocity;
+        self.body.lin_mom = self.velocity;
     }
 
-    fn apply_impulse(&mut self, m: Vec3) {
-        self.body.momentum += m;
-        self.velocity = self.body.momentum;
+    fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
+        self.body.lin_mom += l;
+        self.body.ang_mom += a;
+        self.velocity = self.body.lin_mom;
     }
+
+    
 }
 
 trait Camera {
@@ -125,14 +135,16 @@ impl Camera for OrbitCamera {
         // The camera should point at the player
         c.target = self.player_pos;
         // And rotated around the player's position and offset backwards
-        let camera_rot = self.player_rot
-            * Quat::from(cgmath::Euler::new(
-                cgmath::Rad(self.pitch),
-                cgmath::Rad(self.yaw),
-                cgmath::Rad(0.0),
-            ));
-        let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
-        c.eye = self.player_pos + offset;
+
+        // let camera_rot = self.player_rot
+        //     * Quat::from(cgmath::Euler::new(
+        //         cgmath::Rad(self.pitch),
+        //         cgmath::Rad(self.yaw),
+        //         cgmath::Rad(0.0),
+        //     ));
+        // let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
+        // c.eye = self.player_pos + offset;
+
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
     }
 }
@@ -284,7 +296,9 @@ impl<C: Camera> engine3d::Game for Game<C> {
             body: Sphere {
                 c: Pos3::new(0.0, 3.0, 0.0),
                 r: 0.3,
-                momentum: Vec3::new(0.0, 0.0, 0.0)
+                lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                mass: 1.0,
             },
             velocity: Vec3::zero(),
             acc: Vec3::zero(),
@@ -303,7 +317,9 @@ impl<C: Camera> engine3d::Game for Game<C> {
                     Sphere {
                         c: Pos3::new(x, y, z),
                         r,
-                        momentum: Vec3::new(0.0, 0.0, 0.0)
+                        lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                        ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                        mass: 1.0,
                     }
                 })
                 .collect::<Vec<_>>(),
@@ -363,18 +379,21 @@ impl<C: Camera> engine3d::Game for Game<C> {
 
         self.player.acc = Vec3::zero();
         if engine.events.key_held(KeyCode::W) {
-            self.player.acc.z = 1.0;
+            self.player.apply_impulse(Vec3::new(0.0, 0.0, 0.1), Vec3::new(0.1, 0.0, 0.0));
         } else if engine.events.key_held(KeyCode::S) {
-            self.player.acc.z = -1.0;
+            self.player.apply_impulse(Vec3::new(0.0, 0.0, -0.1), Vec3::new(-0.1, 0.0, 0.0));
         }
 
         if engine.events.key_held(KeyCode::A) {
-            self.player.acc.x = 1.0;
+            self.player.apply_impulse(Vec3::new(0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, -0.1));
         } else if engine.events.key_held(KeyCode::D) {
-            self.player.acc.x = -1.0;
+            self.player.apply_impulse(Vec3::new(-0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.1));
         }
-        if self.player.acc.magnitude2() > 1.0 {
-            self.player.acc = self.player.acc.normalize();
+        if self.player.body.lin_mom.magnitude2() > 1.3 {
+            self.player.body.lin_mom = self.player.body.lin_mom.normalize_to(1.3);
+        }
+        if self.player.body.ang_mom.magnitude2() > 1.3 {
+            self.player.body.ang_mom = self.player.body.ang_mom.normalize_to(1.3);
         }
 
         if engine.events.key_held(KeyCode::Q) {
@@ -446,7 +465,8 @@ impl<C: Camera> engine3d::Game for Game<C> {
         for collision::Contact { a: pa, .. } in self.pw.iter() {
             // apply "friction" to players on the ground
             assert_eq!(*pa, 0);
-            self.player.velocity *= 0.98;
+            self.player.body.lin_mom *= 0.98;
+            self.player.body.ang_mom *= 0.98;
         }
 
         self.camera.update_camera(engine.camera_mut());
