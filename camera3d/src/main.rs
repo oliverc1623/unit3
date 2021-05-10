@@ -358,7 +358,7 @@ impl engine3d::Game for Game {
             half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
-        let cubes = vec![Cube { body: b }, Cube { body: b2 }];
+        let cubes = vec![Cube { body: b, velocity: 0.0}, Cube { body: b2, velocity: 0.0 }];
         // let cubes = vec![];
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
@@ -526,6 +526,8 @@ impl engine3d::Game for Game {
         }
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
+            sound.sink.play();
+
             let cube_pos = self.cubes[0].body.c;
             println!("cubex pos: {}", cube_pos[0]);
             println!("cube z pos: {}", cube_pos[2]);
@@ -571,6 +573,7 @@ impl engine3d::Game for Game {
                 sound.play_top_to_bottom(z_diff);
             }
         }
+        sound.sink.pause();
     }
 }
 
