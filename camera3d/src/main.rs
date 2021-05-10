@@ -30,26 +30,26 @@ impl Player {
         );
     }
     fn integrate(&mut self) {
-        self.velocity = self.body.lin_mom;
+        
         // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
         self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
+        self.velocity = self.body.lin_mom;
 
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
         }
 
         self.body.c += self.velocity * DT;
-        self.body.lin_mom = self.velocity;
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
-        self.body.lin_mom = self.velocity;
+        
     }
 
     fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
         self.body.lin_mom += l;
         self.body.ang_mom += a;
-        self.velocity = self.body.lin_mom;
+        // self.velocity = self.body.lin_mom;
     }
 }
 
@@ -292,6 +292,7 @@ struct Game {
     pw: Vec<collision::Contact<usize>>,
     mm: Vec<collision::Contact<usize>>,
     mw: Vec<collision::Contact<usize>>,
+    pb: Vec<collision::Contact<usize>>,
     use_alt_cam: bool,
     // sound: sound::Sound,
 }
@@ -316,7 +317,7 @@ impl engine3d::Game for Game {
         };
         let player = Player {
             body: Sphere {
-                c: Pos3::new(0.0, 3.0, 0.0),
+                c: Pos3::new(0.0, 0.3, 3.0),
                 r: 0.3,
                 lin_mom: Vec3::new(0.0, 0.0, 0.0),
                 ang_mom: Vec3::new(0.0, 0.0, 0.0),
@@ -353,7 +354,7 @@ impl engine3d::Game for Game {
         let b = AABB {
             c: Pos3::new(1.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(2.0, 2.0, 2.0),
+            half_sizes: Vec3::new(1.0, 1.0, 1.0),
         };
 
         let b2 = AABB {
@@ -384,6 +385,7 @@ impl engine3d::Game for Game {
                 mw: vec![],
                 pm: vec![],
                 pw: vec![],
+                pb: vec![],
                 use_alt_cam: false,
             },
             GameData {
@@ -497,11 +499,12 @@ impl engine3d::Game for Game {
         self.mw.clear();
         self.pm.clear();
         self.pw.clear();
+        self.pb.clear();
         let mut pb = [self.player.body];
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pw);
+        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -515,7 +518,7 @@ impl engine3d::Game for Game {
             &mut pb,
             &mut pv,
             &[self.cubes[0].body, self.cubes[1].body],
-            &mut self.pw,
+            &mut self.pb,
         );
         collision::restitute_dyns(
             &mut self.marbles.body,
