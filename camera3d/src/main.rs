@@ -404,24 +404,24 @@ impl engine3d::Game for Game {
             half_sizes: Vec3::new(0.75, 0.75, 0.75),
         };
         let b2 = AABB {
-            c: Pos3::new(1.0, 1.0, 25.0), // 
+            c: Pos3::new(1.0, 1.0, 25.0),  
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
         let b3 = AABB {
-            c: Pos3::new(35.0, 1.0, 1.0), // left box
+            c: Pos3::new(35.0, 1.0, 1.0), 
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
         let b4 = AABB {
-            c: Pos3::new(-35.0, 1.0, 1.0),
+            c: Pos3::new(-25.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
         let b5 = AABB {
-            c: Pos3::new(1.0, 1.0, -35.0),
+            c: Pos3::new(1.0, 1.0, -25.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 5.0, 1.0),
+            half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
 
         let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
