@@ -55,27 +55,30 @@ impl Player {
         // self.velocity = self.body.lin_mom;
     }
 
-    fn new()-> Player{
+    fn new(loading: bool)-> Player{
         
         let mut loaded_save = save_load::parse_save(String::from(SAVE_PATH));
-        match loaded_save{
-        Ok(load)=>{
-            let player = return Player {
-                body: Sphere {
-                    c: Pos3::new(load.location.x, load.location.y, load.location.z),
-                    r: 0.3,
-                    lin_mom: Vec3::new(0.0, 0.0, 0.0),
-                    ang_mom: Vec3::new(0.0, 0.0, 0.0),
-                    mass: 1.0,
-                },
-                velocity: Vec3::zero(),
-                acc: Vec3::zero(),
-                omega: Vec3::zero(),
-                rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-            };
+        if loading {
+            println!("Loading saved game");
+            match loaded_save{
+            Ok(load)=>{
+                let player = return Player {
+                    body: Sphere {
+                        c: Pos3::new(load.location.x, load.location.y, load.location.z),
+                        r: 0.3,
+                        lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                        ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                        mass: 1.0,
+                    },
+                    velocity: Vec3::zero(),
+                    acc: Vec3::zero(),
+                    omega: Vec3::zero(),
+                    rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+                };
 
-        }
-        Err(_)=>{ println!("No save starting new game");
+            }
+            Err(_)=>{ println!("No save starting new game");
+            }
         }
     }
     return Player {
@@ -350,8 +353,14 @@ impl engine3d::Game for Game {
     fn start(engine: &mut Engine) -> (Self, Self::StaticData) {
         use rand::Rng;
 
-        
-        let player = Player::new();
+        let mut line = String::new();
+        println!("Load saved game? Y/N:");
+        let b1 = std::io::stdin().read_line(&mut line).unwrap();
+        if line == "Y\n" || line == "y\n" {
+            let player = Player::new(true);
+        } else {
+            let player = Player::new(false);
+        }
 
         let wall = Wall {
             body: Plane {

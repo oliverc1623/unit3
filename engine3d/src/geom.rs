@@ -176,12 +176,12 @@ impl Collide<Plane> for Sphere {
 
 impl Collide<AABB> for Sphere {
     fn touching(&self, b: &AABB) -> bool {
-        let minX = b.c.x - b.half_sizes[0];
-        let maxX = b.c.x + b.half_sizes[0];
-        let minY = b.c.y - b.half_sizes[1];
-        let maxY = b.c.y + b.half_sizes[1];
-        let minZ = b.c.z - b.half_sizes[2];
-        let maxZ = b.c.z + b.half_sizes[2];
+        let minX = b.c.x - b.half_sizes[0] * 2.0;
+        let maxX = b.c.x + b.half_sizes[0] * 2.0;
+        let minY = b.c.y - b.half_sizes[1] * 2.0;
+        let maxY = b.c.y + b.half_sizes[1] * 2.0;
+        let minZ = b.c.z - b.half_sizes[2] * 2.0;
+        let maxZ = b.c.z + b.half_sizes[2] * 2.0;
 
         let x = minX.max(self.c.x.min(maxX));
         let y = minY.max(self.c.y.min(maxY));
