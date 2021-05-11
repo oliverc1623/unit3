@@ -1,16 +1,17 @@
-use engine3d::{collision, events::*, geom::*, render::InstanceGroups, run, sound, Engine, DT, save_load};
+use engine3d::{
+    collision, events::*, geom::*, render::InstanceGroups, run, save_load, sound, Engine, DT,
+};
 use rand;
 use rodio::{source::SineWave, source::Source, SpatialSink};
+use save_load::{new_save, parse_save};
 use std::io::BufReader;
 use std::thread;
 use std::time::Duration;
 use winit;
-use save_load::{new_save,parse_save};
 
 const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
 const SAVE_PATH: &str = "saves/save.json";
-
 
 #[derive(Clone, Debug)]
 pub struct Player {
@@ -27,13 +28,15 @@ impl Player {
         igs.render(
             rules.player_model,
             engine3d::render::InstanceRaw {
-                model: ( Mat4::from_translation(self.body.c.to_vec()) * Mat4::from(self.rot) * Mat4::from_scale(self.body.r)).into(),
+                model: (Mat4::from_translation(self.body.c.to_vec())
+                    * Mat4::from(self.rot)
+                    * Mat4::from_scale(self.body.r))
+                .into(),
                 // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
     }
     fn integrate(&mut self) {
-        
         // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
         self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
         self.velocity = self.body.lin_mom;
@@ -46,7 +49,6 @@ impl Player {
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
-        
     }
 
     fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
@@ -55,46 +57,49 @@ impl Player {
         // self.velocity = self.body.lin_mom;
     }
 
-    fn new(loading: bool)-> Player{
-        
+    fn new(loading: bool) -> Player {
         let mut loaded_save = save_load::parse_save(String::from(SAVE_PATH));
         if loading {
             println!("Loading saved game");
-            match loaded_save{
-            Ok(load)=>{
-                let player = return Player {
-                    body: Sphere {
-                        c:  Pos3::new(load.player_location.x, load.player_location.y, load.player_location.z),
-                        r: 0.3,
-                        lin_mom: Vec3::new(0.0, 0.0, 0.0),
-                        ang_mom: Vec3::new(0.0, 0.0, 0.0),
-                        mass: 1.0,
-                    },
-                    velocity: Vec3::zero(),
-                    acc: Vec3::zero(),
-                    omega: Vec3::zero(),
-                    rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-                };
-
-            }
-            Err(_)=>{ println!("No saved game file, starting new game");
+            match loaded_save {
+                Ok(load) => {
+                    let player = return Player {
+                        body: Sphere {
+                            c: Pos3::new(
+                                load.player_location.x,
+                                load.player_location.y,
+                                load.player_location.z,
+                            ),
+                            r: 0.3,
+                            lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                            ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                            mass: 1.0,
+                        },
+                        velocity: Vec3::zero(),
+                        acc: Vec3::zero(),
+                        omega: Vec3::zero(),
+                        rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+                    };
+                }
+                Err(_) => {
+                    println!("No saved game file, starting new game");
+                }
             }
         }
+        return Player {
+            body: Sphere {
+                c: Pos3::new(0.0, 3.0, 0.0),
+                r: 0.3,
+                lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                mass: 1.0,
+            },
+            velocity: Vec3::zero(),
+            acc: Vec3::zero(),
+            omega: Vec3::zero(),
+            rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+        };
     }
-    return Player {
-        body: Sphere {
-            c: Pos3::new(0.0, 3.0, 0.0),
-            r: 0.3,
-            lin_mom: Vec3::new(0.0, 0.0, 0.0),
-            ang_mom: Vec3::new(0.0, 0.0, 0.0),
-            mass: 1.0,
-        },
-        velocity: Vec3::zero(),
-        acc: Vec3::zero(),
-        omega: Vec3::zero(),
-        rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-    };
-}
 }
 
 trait Camera {
@@ -182,14 +187,14 @@ impl Camera for OrbitCamera {
         c.target = self.player_pos;
         // And rotated around the player's position and offset backwards
 
-         let camera_rot = //self.player_rot*
+        let camera_rot = //self.player_rot*
           Quat::from(cgmath::Euler::new(
                  cgmath::Rad(self.pitch),
                  cgmath::Rad(self.yaw),
                  cgmath::Rad(0.0),
              ));
-         let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
-         c.eye = self.player_pos + offset;
+        let offset = camera_rot * Vec3::new(0.0, 0.0, -self.distance);
+        c.eye = self.player_pos + offset;
 
         // To be fancy, we'd want to make the camera's eye to be an object in the world and whose rotation is locked to point towards the player, and whose distance from the player is locked, and so on---so we'd have player OR camera movements apply accelerations to the camera which could be "beaten" by collision.
     }
@@ -356,12 +361,14 @@ impl engine3d::Game for Game {
         let mut line = String::new();
         println!("Load saved game? Y/N:");
         let b1 = std::io::stdin().read_line(&mut line).unwrap();
-        if line == "Y\n" || line == "y\n" {
-            let player = Player::new(true);
-        } else {
-            let player = Player::new(false);
-        }
 
+        let loading;
+        if line == "Y\n" || line == "y\n" {
+            loading = true;
+        } else {
+            loading = false;
+        }
+        let player = Player::new(loading);
 
         let wall = Wall {
             body: Plane {
@@ -406,18 +413,59 @@ impl engine3d::Game for Game {
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
 
-        let b = AABB {
-            c: Pos3::new(20.0, 1.0, 20.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
-            half_sizes: Vec3::new(0.75, 0.75, 0.75),
-        };
-        let b2 = AABB {
-            c: Pos3::new(1.0, 1.0, 25.0),  
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 1.0, 1.0),
-        };
+        let b;
+        let b2;
+        if loading {
+            let loaded_save = save_load::parse_save(String::from(SAVE_PATH));
+            match loaded_save {
+                Ok(load) => {
+                    b = AABB {
+                        c: Pos3::new(
+                            load.button_location.x,
+                            load.button_location.y,
+                            load.button_location.z,
+                        ),
+                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
+                        half_sizes: Vec3::new(0.75, 0.75, 0.75),
+                    };
+                    b2 = AABB {
+                        c: Pos3::new(
+                            load.wall_location.x,
+                            load.wall_location.y,
+                            load.wall_location.z,
+                        ),
+                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+                        half_sizes: Vec3::new(15.0, 1.0, 1.0),
+                    };
+                }
+                Err(_) => {
+                    b = AABB {
+                        c: Pos3::new(20.0, 1.0, 20.0),
+                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
+                        half_sizes: Vec3::new(0.75, 0.75, 0.75),
+                    };
+                    b2 = AABB {
+                        c: Pos3::new(1.0, 1.0, 25.0),
+                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+                        half_sizes: Vec3::new(15.0, 1.0, 1.0),
+                    };
+                }
+            }
+        } else {
+            b = AABB {
+                c: Pos3::new(20.0, 1.0, 20.0),
+                // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
+                half_sizes: Vec3::new(0.75, 0.75, 0.75),
+            };
+            b2 = AABB {
+                c: Pos3::new(1.0, 1.0, 25.0),
+                // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+                half_sizes: Vec3::new(15.0, 1.0, 1.0),
+            };
+        }
+
         let b3 = AABB {
-            c: Pos3::new(35.0, 1.0, 1.0), 
+            c: Pos3::new(35.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
@@ -432,11 +480,28 @@ impl engine3d::Game for Game {
             half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
 
-        let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
-                        Cube {body: b2, velocity: Vec3::zero()}, 
-                        Cube{body: b3, velocity: Vec3::zero()},
-                        Cube{body: b4, velocity: Vec3::zero()},
-                        Cube{body: b5, velocity: Vec3::zero()}];
+        let cubes = vec![
+            Cube {
+                body: b,
+                velocity: Vec3::zero(),
+            },
+            Cube {
+                body: b2,
+                velocity: Vec3::zero(),
+            },
+            Cube {
+                body: b3,
+                velocity: Vec3::zero(),
+            },
+            Cube {
+                body: b4,
+                velocity: Vec3::zero(),
+            },
+            Cube {
+                body: b5,
+                velocity: Vec3::zero(),
+            },
+        ];
         // let cubes = vec![];
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
@@ -541,7 +606,12 @@ impl engine3d::Game for Game {
             self.td_player = self.player.clone();
         }
         if engine.events.key_pressed(KeyCode::X) {
-           save_load::new_save(self.player.body.c.clone(),self.cubes[0].body.c.clone(),self.cubes[1].body.c,String::from(SAVE_PATH));
+            save_load::new_save(
+                self.player.body.c.clone(),
+                self.cubes[0].body.c.clone(),
+                self.cubes[1].body.c,
+                String::from(SAVE_PATH),
+            );
         }
 
         if self.use_alt_cam {
@@ -585,10 +655,16 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[1].body, 
-                                            self.cubes[2].body, 
-                                            self.cubes[3].body, 
-                                            self.cubes[4].body], &mut self.pb);
+        collision::gather_contacts_ab(
+            &pb,
+            &[
+                self.cubes[1].body,
+                self.cubes[2].body,
+                self.cubes[3].body,
+                self.cubes[4].body,
+            ],
+            &mut self.pb,
+        );
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -601,10 +677,12 @@ impl engine3d::Game for Game {
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
-            &[self.cubes[1].body, 
-            self.cubes[2].body, 
-            self.cubes[3].body, 
-            self.cubes[4].body],
+            &[
+                self.cubes[1].body,
+                self.cubes[2].body,
+                self.cubes[3].body,
+                self.cubes[4].body,
+            ],
             &mut self.pb,
         );
         collision::restitute_dyns(
