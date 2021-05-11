@@ -53,7 +53,7 @@ impl Shape for Sphere {
         let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
         // let num = (-v).dot(t) * u;
         // let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(t)).cross(r)).dot(t);
-
+        println!("den: {} ", den);
         let j_new = num / den;
 
         self.lin_mom += j_new * n; // Update linear momentum

@@ -362,7 +362,19 @@ impl engine3d::Game for Game {
             },
             control: (0, 0),
         };
-        
+        let player = Player {
+            body: Sphere {
+                c: Pos3::new(10.0, 0.3, 10.0),
+                r: 0.3,
+                lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                mass: 1.0,
+            },
+            velocity: Vec3::zero(),
+            acc: Vec3::zero(),
+            omega: Vec3::zero(),
+            rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+        };
         let td_player = player.clone();
         let camera = OrbitCamera::new();
         let alt_camera = TopDownCamera::new();
@@ -387,24 +399,41 @@ impl engine3d::Game for Game {
         };
 
         let b = AABB {
-            c: Pos3::new(1.0, 1.0, 1.0),
+            c: Pos3::new(22.0, 1.0, 22.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(1.0, 1.0, 1.0),
+            half_sizes: Vec3::new(0.75, 0.75, 0.75),
         };
-
         let b2 = AABB {
-            c: Pos3::new(18.0, 1.0, 22.0),
+            c: Pos3::new(1.0, 1.0, 35.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(1.0, 1.0, 1.0),
+            half_sizes: Vec3::new(15.0, 5.0, 1.0),
+        };
+        let b3 = AABB {
+            c: Pos3::new(35.0, 1.0, 1.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            half_sizes: Vec3::new(1.0, 15.0, 15.0),
+        };
+        let b4 = AABB {
+            c: Pos3::new(-35.0, 1.0, 1.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            half_sizes: Vec3::new(1.0, 15.0, 15.0),
+        };
+        let b5 = AABB {
+            c: Pos3::new(1.0, 1.0, -35.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            half_sizes: Vec3::new(15.0, 5.0, 1.0),
         };
 
-        let cubes = vec![Cube { body: b, velocity:Vec3::zero() }, Cube { body: b2, velocity: Vec3::zero() }];
+        let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
+                        Cube {body: b2, velocity: Vec3::zero()}, 
+                        Cube{body: b3, velocity: Vec3::zero()},
+                        Cube{body: b4, velocity: Vec3::zero()},
+                        Cube{body: b5, velocity: Vec3::zero()}];
         // let cubes = vec![];
-
         let wall_model = engine.load_model("floor.obj");
         let marble_model = engine.load_model("sphere.obj");
         let player_model = engine.load_model("sphere.obj");
-        let box_model = engine.load_model("box.obj");
+        let box_model = engine.load_model("cube.obj");
         (
             Self {
                 // camera_controller,
@@ -449,6 +478,12 @@ impl engine3d::Game for Game {
         // TODO update camera with controls/player movement
         // TODO TODO show how spherecasting could work?  camera pseudo-entity collision check?  camera entity for real?
         // self.camera_controller.update(engine);
+        if self.player.body.touching(&self.cubes[0].body) {
+            println!("touching emitting box");
+            self.cubes[0].velocity = Vec3::new(0.0, -1.0, 0.0);
+            self.cubes[1].velocity = Vec3::new(0.0, -1.0, 0.0);
+        }
+
         self.player.acc = Vec3::zero();
         if self.use_alt_cam {
             if engine.events.key_held(KeyCode::W) {
@@ -509,7 +544,7 @@ impl engine3d::Game for Game {
             self.player.integrate();
         }
 
-        self.wall.integrate();
+        // self.walls.integrate();
         self.player.integrate();
         self.marbles.integrate();
         self.cubes.iter_mut().for_each(|b| b.integrate());
@@ -542,7 +577,7 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[0].body, self.cubes[1].body], &mut self.pb);
+        collision::gather_contacts_ab(&pb, &[self.cubes[1].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -555,7 +590,7 @@ impl engine3d::Game for Game {
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
-            &[self.cubes[0].body, self.cubes[1].body],
+            &[self.cubes[1].body],
             &mut self.pb,
         );
         collision::restitute_dyns(
@@ -591,7 +626,8 @@ impl engine3d::Game for Game {
         }
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
-            let cube_pos = self.cubes[1].body.c;
+            sound.sink.play();
+            let cube_pos = self.cubes[0].body.c;
             println!("cubex pos: {}", cube_pos[0]);
             println!("cube z pos: {}", cube_pos[2]);
             println!("my x pos: {}", self.player.body.c[0]);
@@ -636,6 +672,7 @@ impl engine3d::Game for Game {
                 sound.play_top_to_bottom(z_diff);
             }
         }
+        sound.sink.pause();
     }
 }
 
