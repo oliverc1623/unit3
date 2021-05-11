@@ -397,17 +397,17 @@ impl engine3d::Game for Game {
         };
 
         let b = AABB {
-            c: Pos3::new(22.0, 1.0, 22.0),
+            c: Pos3::new(20.0, 1.0, 20.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(0.75, 0.75, 0.75),
         };
         let b2 = AABB {
-            c: Pos3::new(1.0, 1.0, 35.0),
+            c: Pos3::new(1.0, 1.0, 25.0), // 
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 5.0, 1.0),
+            half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
         let b3 = AABB {
-            c: Pos3::new(35.0, 1.0, 1.0),
+            c: Pos3::new(35.0, 1.0, 1.0), // left box
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
@@ -575,7 +575,10 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[1].body], &mut self.pb);
+        collision::gather_contacts_ab(&pb, &[self.cubes[1].body, 
+                                            self.cubes[2].body, 
+                                            self.cubes[3].body, 
+                                            self.cubes[4].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -588,7 +591,10 @@ impl engine3d::Game for Game {
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
-            &[self.cubes[1].body],
+            &[self.cubes[1].body, 
+            self.cubes[2].body, 
+            self.cubes[3].body, 
+            self.cubes[4].body],
             &mut self.pb,
         );
         collision::restitute_dyns(
