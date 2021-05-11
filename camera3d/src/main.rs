@@ -62,7 +62,7 @@ impl Player {
         Ok(load)=>{
             let player = return Player {
                 body: Sphere {
-                    c: Pos3::new(load.location.x, load.location.y, load.location.z),
+                    c: Pos3::new(load.player_location.x, load.player_location.y, load.player_location.z),
                     r: 0.3,
                     lin_mom: Vec3::new(0.0, 0.0, 0.0),
                     ang_mom: Vec3::new(0.0, 0.0, 0.0),
@@ -533,7 +533,7 @@ impl engine3d::Game for Game {
             self.td_player = self.player.clone();
         }
         if engine.events.key_pressed(KeyCode::X) {
-           save_load::new_save(self.player.body.c.clone(),String::from(SAVE_PATH));
+           save_load::new_save(self.player.body.c.clone(),self.cubes[0].body.c.clone(),self.cubes[1].body.c,String::from(SAVE_PATH));
         }
 
         if self.use_alt_cam {

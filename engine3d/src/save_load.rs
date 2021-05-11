@@ -6,7 +6,9 @@ use crate::geom::Pos3;
 
 #[derive(Serialize, Deserialize)]
 pub struct SaveFile {
-    pub location: Location,
+    pub player_location: Location,
+    pub button_location: Location,
+    pub wall_location: Location
 }
 
 #[derive(Serialize, Deserialize)]
@@ -37,12 +39,22 @@ pub fn parse_save(string_path: String) -> Result<SaveFile> {
     
 }
 
-pub fn new_save(position: Pos3, string_path: String) -> Result<()>{
+pub fn new_save(player_position: Pos3, button_position: Pos3, wall_position: Pos3, string_path: String) -> Result<()>{
     let save_file = SaveFile {
-        location:Location { 
-            x:position.x,
-            y:position.y,
-            z:position.z
+        player_location:Location { 
+            x:player_position.x,
+            y:player_position.y,
+            z:player_position.z
+        },
+        button_location:Location { 
+            x:button_position.x,
+            y:button_position.y,
+            z:button_position.z
+        },
+        wall_location:Location { 
+            x:wall_position.x,
+            y:wall_position.y,
+            z:wall_position.z
         } 
     };
 
