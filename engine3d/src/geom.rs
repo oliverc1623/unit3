@@ -42,10 +42,10 @@ impl Shape for Sphere {
         let r = contact_point - self.c.to_vec();
         let i = Mat3::new(mr, 0.0, 0.0, 0.0, mr, 0.0, 0.0, 0.0, mr);
 
-        println!("DISP: {}, {}, {}", disp.x, disp.y, disp.z);
+        // println!("DISP: {}, {}, {}", disp.x, disp.y, disp.z);
 
         let u = 0.5;
-        let t = -v;
+        let t = v;
 
 
 
@@ -57,8 +57,10 @@ impl Shape for Sphere {
         let j_new = num / den;
 
         self.lin_mom += j_new * n; // Update linear momentum
+        // self.lin_mom *= 0.85;
         self.ang_mom += r.cross(j_new * n); // Update angular momentum
-        // println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
+        // self.ang_mom *= 0.85;
+        println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
     }
 }
 
@@ -174,12 +176,12 @@ impl Collide<Plane> for Sphere {
 
 impl Collide<AABB> for Sphere {
     fn touching(&self, b: &AABB) -> bool {
-        let minX = b.c.x - b.half_sizes[0];
-        let maxX = b.c.x + b.half_sizes[0];
-        let minY = b.c.y - b.half_sizes[1];
-        let maxY = b.c.y + b.half_sizes[1];
-        let minZ = b.c.z - b.half_sizes[2];
-        let maxZ = b.c.z + b.half_sizes[2];
+        let minX = b.c.x - b.half_sizes[0] * 2.0;
+        let maxX = b.c.x + b.half_sizes[0] * 2.0;
+        let minY = b.c.y - b.half_sizes[1] * 2.0;
+        let maxY = b.c.y + b.half_sizes[1] * 2.0;
+        let minZ = b.c.z - b.half_sizes[2] * 2.0;
+        let maxZ = b.c.z + b.half_sizes[2] * 2.0;
 
         let x = minX.max(self.c.x.min(maxX));
         let y = minY.max(self.c.y.min(maxY));
@@ -216,12 +218,10 @@ impl Collide<AABB> for Sphere {
         } else {
             disp.z = self.r - disp.z;
         }
-
-        disp = disp / 2.0;
         
         if distance < self.r {
             println!("collide! {}, {}", distance, self.r);
-            return Some(-(cp - self.c.to_vec()));
+            return Some(-disp);
             // return None;
         }
         None

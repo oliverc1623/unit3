@@ -55,27 +55,30 @@ impl Player {
         // self.velocity = self.body.lin_mom;
     }
 
-    fn new()-> Player{
+    fn new(loading: bool)-> Player{
         
         let mut loaded_save = save_load::parse_save(String::from(SAVE_PATH));
-        match loaded_save{
-        Ok(load)=>{
-            let player = return Player {
-                body: Sphere {
-                    c: Pos3::new(load.player_location.x, load.player_location.y, load.player_location.z),
-                    r: 0.3,
-                    lin_mom: Vec3::new(0.0, 0.0, 0.0),
-                    ang_mom: Vec3::new(0.0, 0.0, 0.0),
-                    mass: 1.0,
-                },
-                velocity: Vec3::zero(),
-                acc: Vec3::zero(),
-                omega: Vec3::zero(),
-                rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-            };
+        if loading {
+            println!("Loading saved game");
+            match loaded_save{
+            Ok(load)=>{
+                let player = return Player {
+                    body: Sphere {
+                        c:  Pos3::new(load.player_location.x, load.player_location.y, load.player_location.z),
+                        r: 0.3,
+                        lin_mom: Vec3::new(0.0, 0.0, 0.0),
+                        ang_mom: Vec3::new(0.0, 0.0, 0.0),
+                        mass: 1.0,
+                    },
+                    velocity: Vec3::zero(),
+                    acc: Vec3::zero(),
+                    omega: Vec3::zero(),
+                    rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+                };
 
-        }
-        Err(_)=>{ println!("No save starting new game");
+            }
+            Err(_)=>{ println!("No saved game file, starting new game");
+            }
         }
     }
     return Player {
@@ -350,10 +353,15 @@ impl engine3d::Game for Game {
     fn start(engine: &mut Engine) -> (Self, Self::StaticData) {
         use rand::Rng;
 
-        let mut input = String::new();
+        let mut line = String::new();
+        println!("Load saved game? Y/N:");
+        let b1 = std::io::stdin().read_line(&mut line).unwrap();
+        if line == "Y\n" || line == "y\n" {
+            let player = Player::new(true);
+        } else {
+            let player = Player::new(false);
+        }
 
-
-        let player = Player::new();
 
         let wall = Wall {
             body: Plane {
@@ -399,29 +407,29 @@ impl engine3d::Game for Game {
         };
 
         let b = AABB {
-            c: Pos3::new(22.0, 1.0, 22.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            c: Pos3::new(20.0, 1.0, 20.0),
+            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
             half_sizes: Vec3::new(0.75, 0.75, 0.75),
         };
         let b2 = AABB {
-            c: Pos3::new(1.0, 1.0, 35.0),
+            c: Pos3::new(1.0, 1.0, 25.0),  
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 5.0, 1.0),
+            half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
         let b3 = AABB {
-            c: Pos3::new(35.0, 1.0, 1.0),
+            c: Pos3::new(35.0, 1.0, 1.0), 
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
         let b4 = AABB {
-            c: Pos3::new(-35.0, 1.0, 1.0),
+            c: Pos3::new(-25.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(1.0, 15.0, 15.0),
         };
         let b5 = AABB {
-            c: Pos3::new(1.0, 1.0, -35.0),
+            c: Pos3::new(1.0, 1.0, -25.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 5.0, 1.0),
+            half_sizes: Vec3::new(15.0, 1.0, 1.0),
         };
 
         let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
@@ -577,7 +585,10 @@ impl engine3d::Game for Game {
         let mut pv = [self.player.velocity];
         collision::gather_contacts_ab(&pb, &self.marbles.body, &mut self.pm);
         collision::gather_contacts_ab(&pb, &[self.wall.body], &mut self.pw);
-        collision::gather_contacts_ab(&pb, &[self.cubes[1].body], &mut self.pb);
+        collision::gather_contacts_ab(&pb, &[self.cubes[1].body, 
+                                            self.cubes[2].body, 
+                                            self.cubes[3].body, 
+                                            self.cubes[4].body], &mut self.pb);
         collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
         collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
@@ -590,7 +601,10 @@ impl engine3d::Game for Game {
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
-            &[self.cubes[1].body],
+            &[self.cubes[1].body, 
+            self.cubes[2].body, 
+            self.cubes[3].body, 
+            self.cubes[4].body],
             &mut self.pb,
         );
         collision::restitute_dyns(
