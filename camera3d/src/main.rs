@@ -75,7 +75,7 @@ impl Player {
             };
 
         }
-        Err(_)=>{
+        Err(_)=>{ println!("No save starting new game");
         }
     }
     return Player {
