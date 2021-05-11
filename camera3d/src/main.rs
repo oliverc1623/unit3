@@ -11,6 +11,7 @@ const NUM_MARBLES: usize = 0;
 const G: f32 = 1.0;
 const SAVE_PATH: &str = "saves/save.json";
 
+
 #[derive(Clone, Debug)]
 pub struct Player {
     pub body: Sphere,
@@ -55,8 +56,8 @@ impl Player {
     }
 
     fn new()-> Player{
-        let loaded_save = save_load::parse_save(String::from(SAVE_PATH));
-
+        
+        let mut loaded_save = save_load::parse_save(String::from(SAVE_PATH));
         match loaded_save{
         Ok(load)=>{
             let player = return Player {
@@ -74,21 +75,22 @@ impl Player {
             };
 
         }
-        Err(_)=>{let player = return Player {
-            body: Sphere {
-                c: Pos3::new(0.0, 3.0, 0.0),
-                r: 0.3,
-                lin_mom: Vec3::new(0.0, 0.0, 0.0),
-                ang_mom: Vec3::new(0.0, 0.0, 0.0),
-                mass: 1.0,
-            },
-            velocity: Vec3::zero(),
-            acc: Vec3::zero(),
-            omega: Vec3::zero(),
-            rot: Quat::new(1.0, 0.0, 0.0, 0.0),
-        };
+        Err(_)=>{ println!("No save starting new game");
+        }
     }
-    }
+    return Player {
+        body: Sphere {
+            c: Pos3::new(0.0, 3.0, 0.0),
+            r: 0.3,
+            lin_mom: Vec3::new(0.0, 0.0, 0.0),
+            ang_mom: Vec3::new(0.0, 0.0, 0.0),
+            mass: 1.0,
+        },
+        velocity: Vec3::zero(),
+        acc: Vec3::zero(),
+        omega: Vec3::zero(),
+        rot: Quat::new(1.0, 0.0, 0.0, 0.0),
+    };
 }
 }
 
