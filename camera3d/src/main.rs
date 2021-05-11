@@ -46,13 +46,14 @@ impl Player {
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
+        self.body.lin_mom = self.velocity;
         
     }
 
     fn apply_impulse(&mut self, l: Vec3, a: Vec3) {
         self.body.lin_mom += l;
         self.body.ang_mom += a;
-        // self.velocity = self.body.lin_mom;
+        self.velocity = self.body.lin_mom;
     }
 
     fn new(loading: bool)-> Player{
@@ -414,22 +415,22 @@ impl engine3d::Game for Game {
         let b2 = AABB {
             c: Pos3::new(1.0, 1.0, 25.0),  
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 1.0, 1.0),
+            half_sizes: Vec3::new(15.0, 2.0, 2.0),
         };
         let b3 = AABB {
             c: Pos3::new(35.0, 1.0, 1.0), 
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(1.0, 15.0, 15.0),
+            half_sizes: Vec3::new(2.0, 15.0, 15.0),
         };
         let b4 = AABB {
             c: Pos3::new(-25.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(1.0, 15.0, 15.0),
+            half_sizes: Vec3::new(2.0, 15.0, 15.0),
         };
         let b5 = AABB {
             c: Pos3::new(1.0, 1.0, -25.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 1.0, 1.0),
+            half_sizes: Vec3::new(15.0, 2.0, 2.0),
         };
 
         let cubes = vec![Cube {body: b, velocity:Vec3::zero()}, 
@@ -629,8 +630,8 @@ impl engine3d::Game for Game {
         for collision::Contact { a: pa, .. } in self.pw.iter() {
             // apply "friction" to players on the ground
             assert_eq!(*pa, 0);
-            self.player.body.lin_mom *= 0.98;
-            self.player.body.ang_mom *= 0.98;
+            println!("cheers");
+            self.player.apply_impulse(self.player.body.lin_mom * -0.02, self.player.body.ang_mom * -0.02)
         }
 
         if self.use_alt_cam {

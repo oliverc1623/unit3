@@ -53,14 +53,13 @@ impl Shape for Sphere {
         let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(n)).cross(r)).dot(n);
         // let num = (-v).dot(t) * u;
         // let den = (1.0 / m) + (i.invert().unwrap() * (r.cross(t)).cross(r)).dot(t);
-        println!("den: {} ", den);
         let j_new = num / den;
 
         self.lin_mom += j_new * n; // Update linear momentum
         // self.lin_mom *= 0.85;
         self.ang_mom += r.cross(j_new * n); // Update angular momentum
         // self.ang_mom *= 0.85;
-        println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
+        // println!("{},{},{}", self.ang_mom.x, self.ang_mom.y, self.ang_mom.z);
     }
 }
 
