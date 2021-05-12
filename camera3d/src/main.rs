@@ -49,6 +49,9 @@ impl Player {
 
         self.omega = self.body.ang_mom; // Here we are ignoring intertia
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
+
+        self.rot.normalize();
+        // println!("{},{},{}", self.rot.v.x, self.rot.v.y, self.rot.v.z);
         self.body.lin_mom = self.velocity;
 
     }
@@ -415,18 +418,6 @@ impl engine3d::Game for Game {
             velocity: vec![Vec3::zero(); NUM_MARBLES],
         };
 
-<<<<<<< HEAD
-        let b = AABB {
-            c: Pos3::new(20.0, 1.0, 20.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
-            half_sizes: Vec3::new(0.75, 0.75, 0.75),
-        };
-        let b2 = AABB {
-            c: Pos3::new(1.0, 1.0, 25.0),  
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
-            half_sizes: Vec3::new(15.0, 2.0, 2.0),
-        };
-=======
         let b;
         let b2;
         if loading {
@@ -478,7 +469,6 @@ impl engine3d::Game for Game {
             };
         }
 
->>>>>>> 6fcbbb6ab28f9aafd7ccb4b8d1b1699fffccad8e
         let b3 = AABB {
             c: Pos3::new(35.0, 1.0, 1.0),
             // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
@@ -722,7 +712,6 @@ impl engine3d::Game for Game {
         for collision::Contact { a: pa, .. } in self.pw.iter() {
             // apply "friction" to players on the ground
             assert_eq!(*pa, 0);
-            println!("cheers");
             self.player.apply_impulse(self.player.body.lin_mom * -0.02, self.player.body.ang_mom * -0.02)
         }
 

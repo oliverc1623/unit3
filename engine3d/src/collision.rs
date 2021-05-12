@@ -30,6 +30,7 @@ pub fn restitute_dyn_stat<S1: Shape, S2: Shape>(
             }
             ashapes[a].apply_impulse(disp);
             ashapes[a].translate(disp);
+            println!("{},{},{}", disp.x, disp.y, disp.z);
             // It feels a little weird to be adding displacement (in
             // units) to velocity (in units/frame), but we'll roll
             // with it.  We're not exactly modeling a normal force

@@ -209,17 +209,24 @@ impl Collide<AABB> for Sphere {
         let cp = Vec3::new(x, y, z);
         let distance = cp.distance(self.c.to_vec());
 
-        let mut disp = - cp - self.c.to_vec();
-        if disp.x != 0.0 {
+        let mut disp = cp - self.c.to_vec();
+        if disp.x != 0.0 && disp.x > 0.0 {
             disp.x = self.r - disp.x;
-        } else if disp.y != 0.0 {
+        } else if disp.x != 0.0 {
+            disp.x = -self.r + disp.x;
+        } else if disp.y != 0.0 && disp.y > 0.0{
             disp.y = self.r - disp.y;
-        } else {
+        } else if disp.y != 0.0{
+            disp.y = -self.r + disp.y;
+        } else if disp.z != 0.0 && disp.z > 0.0{
             disp.z = self.r - disp.z;
+        } else {
+            disp.z = -self.r + disp.z;
         }
         
         if distance < self.r {
-            println!("collide! {}, {}", distance, self.r);
+            println!("CP:{},{},{}", cp.x, cp.y, cp.z);
+            println!("collide! {}, {}, {}", disp.x, disp.y, disp.z);
             return Some(-disp);
             // return None;
         }
