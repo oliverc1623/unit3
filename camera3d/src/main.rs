@@ -2,11 +2,8 @@ use engine3d::{
     collision, events::*, geom::*, render::InstanceGroups, run, save_load, sound, Engine, DT,
 };
 use rand;
-use rodio::{source::SineWave, source::Source, SpatialSink};
-use save_load::{new_save, parse_save};
-use std::io::BufReader;
-use std::thread;
-use std::time::Duration;
+// use rodio::{source::SineWave, source::Source, SpatialSink};
+// use save_load::{new_save, parse_save};
 use winit;
 
 const NUM_MARBLES: usize = 0;
@@ -27,19 +24,19 @@ impl Player {
     fn render(&self, rules: &GameData, igs: &mut InstanceGroups) {
         igs.render(
             rules.player_model,
+            // This should incorperate scale, sizem and rotation
             engine3d::render::InstanceRaw {
                 model: (Mat4::from_translation(self.body.c.to_vec())
                     * Mat4::from(self.rot)
                     * Mat4::from_scale(self.body.r))
                 .into(),
-                // model: ((Mat4::from_translation(self.body.c.to_vec()) * Mat4::from_scale(self.body.r))).into(),
             },
         );
     }
     fn integrate(&mut self) {
-        // self.velocity += ((self.rot * self.acc) + Vec3::new(0.0, -G, 0.0)) * DT;
+
         self.apply_impulse(Vec3::new(0.0, -G, 0.0) * DT, Vec3::zero());
-        self.velocity = self.body.lin_mom;
+        self.velocity = self.body.lin_mom; 
 
         if self.velocity.magnitude() > Self::MAX_SPEED {
             self.velocity = self.velocity.normalize_to(Self::MAX_SPEED);
@@ -51,7 +48,6 @@ impl Player {
         self.rot += 0.5 * DT * Quat::new(0.0, self.omega.x, self.omega.y, self.omega.z) * self.rot;
 
         self.rot.normalize();
-        // println!("{},{},{}", self.rot.v.x, self.rot.v.y, self.rot.v.z);
         self.body.lin_mom = self.velocity;
 
     }
@@ -63,7 +59,7 @@ impl Player {
     }
 
     fn new(loading: bool) -> Player {
-        let mut loaded_save = save_load::parse_save(String::from(SAVE_PATH));
+        let loaded_save = save_load::parse_save(String::from(SAVE_PATH));
         if loading {
             println!("Loading saved game");
             match loaded_save {
@@ -284,7 +280,7 @@ impl Wall {
             },
         );
     }
-
+    #[allow(dead_code)]
     fn input(&mut self, events: &engine3d::events::Events) {
         self.control.0 = if events.key_held(KeyCode::A) {
             -1
@@ -301,6 +297,7 @@ impl Wall {
             0
         };
     }
+    #[allow(dead_code)]
     fn integrate(&mut self) {
         self.body.n += Vec3::new(
             self.control.0 as f32 * 0.4 * DT,
@@ -430,7 +427,6 @@ impl engine3d::Game for Game {
                             load.button_location.y,
                             load.button_location.z,
                         ),
-                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
                         half_sizes: Vec3::new(0.75, 0.75, 0.75),
                     };
                     b2 = AABB {
@@ -439,19 +435,16 @@ impl engine3d::Game for Game {
                             load.wall_location.y,
                             load.wall_location.z,
                         ),
-                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
                         half_sizes: Vec3::new(15.0, 1.0, 1.0),
                     };
                 }
                 Err(_) => {
                     b = AABB {
                         c: Pos3::new(20.0, 1.0, 20.0),
-                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
                         half_sizes: Vec3::new(0.75, 0.75, 0.75),
                     };
                     b2 = AABB {
                         c: Pos3::new(1.0, 1.0, 25.0),
-                        // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
                         half_sizes: Vec3::new(15.0, 1.0, 1.0),
                     };
                 }
@@ -459,32 +452,28 @@ impl engine3d::Game for Game {
         } else {
             b = AABB {
                 c: Pos3::new(20.0, 1.0, 20.0),
-                // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0), c
                 half_sizes: Vec3::new(0.75, 0.75, 0.75),
             };
             b2 = AABB {
                 c: Pos3::new(1.0, 1.0, 25.0),
-                // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
                 half_sizes: Vec3::new(15.0, 1.0, 1.0),
             };
         }
 
         let b3 = AABB {
-            c: Pos3::new(35.0, 1.0, 1.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
+            c: Pos3::new(25.0, 1.0, 1.0),
             half_sizes: Vec3::new(2.0, 15.0, 15.0),
         };
         let b4 = AABB {
             c: Pos3::new(-25.0, 1.0, 1.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(2.0, 15.0, 15.0),
         };
         let b5 = AABB {
             c: Pos3::new(1.0, 1.0, -25.0),
-            // axes: Mat3::new(200.0, 200.0, 0.0, 0.0, 200.0, 0.0, 0.0, 0.0, 200.0),
             half_sizes: Vec3::new(15.0, 2.0, 2.0),
         };
 
+        // Construct the walls
         let cubes = vec![
             Cube {
                 body: b,
@@ -541,7 +530,7 @@ impl engine3d::Game for Game {
     fn render(
         &mut self,
         rules: &Self::StaticData,
-        assets: &engine3d::assets::Assets,
+        _assets: &engine3d::assets::Assets,
         igs: &mut InstanceGroups,
     ) {
         self.wall.render(rules, igs);
@@ -551,13 +540,9 @@ impl engine3d::Game for Game {
         // self.camera.render(rules, igs);
     }
     fn update(&mut self, _rules: &Self::StaticData, engine: &mut Engine, sound: &sound::Sound) {
-        // dbg!(self.player.body);
-        // TODO update player acc with controls
-        // TODO update camera with controls/player movement
-        // TODO TODO show how spherecasting could work?  camera pseudo-entity collision check?  camera entity for real?
-        // self.camera_controller.update(engine);
+
+        // If the player touches the emmiting box move everything down
         if self.player.body.touching(&self.cubes[0].body) {
-            println!("touching emitting box");
             self.cubes[0].velocity = Vec3::new(0.0, -1.0, 0.0);
             self.cubes[1].velocity = Vec3::new(0.0, -1.0, 0.0);
         }
@@ -576,6 +561,8 @@ impl engine3d::Game for Game {
                 self.td_player.body.c.x += 0.1;
             }
         } else {
+
+            // Change the momementum of the player when keys are pressed
             if engine.events.key_held(KeyCode::W) {
                 self.player
                     .apply_impulse(Vec3::new(0.0, 0.0, 0.1), Vec3::new(0.1, 0.0, 0.0));
@@ -591,6 +578,8 @@ impl engine3d::Game for Game {
                 self.player
                     .apply_impulse(Vec3::new(-0.1, 0.0, 0.0), Vec3::new(0.0, 0.0, 0.1));
             }
+
+            // Make sure there is a momentum limit
             if self.player.body.lin_mom.magnitude2() > 1.3 {
                 self.player.body.lin_mom = self.player.body.lin_mom.normalize_to(1.3);
             }
@@ -670,15 +659,9 @@ impl engine3d::Game for Game {
             ],
             &mut self.pb,
         );
-        collision::gather_contacts_ab(&self.marbles.body, &[self.wall.body], &mut self.mw);
-        collision::gather_contacts_aa(&self.marbles.body, &mut self.mm);
+
         collision::restitute_dyn_stat(&mut pb, &mut pv, &[self.wall.body], &mut self.pw);
-        collision::restitute_dyn_stat(
-            &mut self.marbles.body,
-            &mut self.marbles.velocity,
-            &[self.wall.body],
-            &mut self.mw,
-        );
+
         collision::restitute_dyn_stat(
             &mut pb,
             &mut pv,
@@ -690,20 +673,9 @@ impl engine3d::Game for Game {
             ],
             &mut self.pb,
         );
-        collision::restitute_dyns(
-            &mut self.marbles.body,
-            &mut self.marbles.velocity,
-            &mut self.mm,
-        );
-        collision::restitute_dyn_dyn(
-            &mut pb,
-            &mut pv,
-            &mut self.marbles.body,
-            &mut self.marbles.velocity,
-            &mut self.pm,
-        );
+
         self.player.body = pb[0];
-        self.player.velocity = pv[0];
+        // self.player.velocity = pv[0];
 
         for collision::Contact { a: ma, .. } in self.mw.iter() {
             // apply "friction" to marbles on the ground
@@ -712,7 +684,7 @@ impl engine3d::Game for Game {
         for collision::Contact { a: pa, .. } in self.pw.iter() {
             // apply "friction" to players on the ground
             assert_eq!(*pa, 0);
-            self.player.apply_impulse(self.player.body.lin_mom * -0.02, self.player.body.ang_mom * -0.02)
+            self.player.apply_impulse(self.player.body.lin_mom * -0.01, self.player.body.ang_mom * -0.01)
         }
 
         if self.use_alt_cam {
@@ -722,6 +694,13 @@ impl engine3d::Game for Game {
         }
         // play sound
         if engine.events.key_pressed(KeyCode::H) {
+
+            // Save the velocity and set it to zero
+            let temp_lin = self.player.body.lin_mom;
+            let temp_ang = self.player.body.ang_mom;
+            self.player.body.lin_mom = Vec3::zero();
+            self.player.body.ang_mom = Vec3::zero();
+
             sound.sink.play();
             let cube_pos = self.cubes[0].body.c;
             println!("cubex pos: {}", cube_pos[0]);
@@ -766,8 +745,12 @@ impl engine3d::Game for Game {
                 sound.play_right_to_left(x_diff);
                 sound.add_sound("content/beep3.ogg");
                 sound.play_top_to_bottom(z_diff);
+                self.player.body.lin_mom = temp_lin;
+                self.player.body.ang_mom = temp_ang;
             }
+
         }
+
         sound.sink.pause();
     }
 }

@@ -1,7 +1,6 @@
-use rodio::{OutputStream, OutputStreamHandle, SpatialSink};
-use std::fs::File;
+use rodio::{SpatialSink};
 use std::io::BufReader;
-use std::path::{Path, PathBuf};
+use std::path::{Path};
 use std::thread;
 use std::time::Duration;
 // const TESTSOUND: str = "content/music.ogg";
